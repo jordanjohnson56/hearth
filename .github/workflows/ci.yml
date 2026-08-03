@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Required. The default shallow clone means the history scan below
+          # sees almost nothing and passes vacuously.
+          fetch-depth: 0
+
+      - name: Install gitleaks
+        env:
+          GITLEAKS_VERSION: 8.30.1
+        run: |
+          curl -sL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            | tar -xz gitleaks
+          sudo install -m 0755 gitleaks /usr/local/bin/gitleaks
+          gitleaks version
+
+      - name: Scan full history
+        run: gitleaks git --config .gitleaks.toml --redact --exit-code 1 .
+
+      - name: Scan working tree
+        run: gitleaks dir --config .gitleaks.toml --redact --exit-code 1 .
+
+  build:
+    name: Typecheck, lint, test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Until M0 lands there is no package.json, and every step below is
+      # skipped. This is deliberate: the workflow exists from the first commit
+      # so it is never bolted on later.
+      - name: Detect application code
+        id: pkg
+        run: |
+          if [ -f package.json ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "No package.json yet, skipping build steps."
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.pkg.outputs.exists == 'true'
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        if: steps.pkg.outputs.exists == 'true'
+        run: npm ci
+
+      - name: Typecheck
+        if: steps.pkg.outputs.exists == 'true'
+        run: npm run typecheck
+
+      - name: Lint
+        if: steps.pkg.outputs.exists == 'true'
+        run: npm run lint
+
+      - name: Test
+        if: steps.pkg.outputs.exists == 'true'
+        run: npm test -- --coverage

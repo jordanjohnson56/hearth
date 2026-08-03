@@ -1,0 +1,19 @@
+#!/bin/sh
+# Refuse to commit secrets or family data to a public repository.
+#
+# Hooks are not cloned. Every clone must run this once:
+#     git config core.hooksPath .githooks
+#
+# `gitleaks git --staged` scans what is about to be committed, which is the
+# pre-commit semantic. (`gitleaks protect --staged` was the old spelling; it
+# still works in 8.x but is retired from the command list.)
+set -e
+
+command -v gitleaks >/dev/null 2>&1 || {
+  echo "gitleaks is not installed. Refusing to commit to a public repo." >&2
+  echo "  sudo pacman -S gitleaks" >&2
+  echo "  (or extract the linux_x64 release binary into ~/.local/bin)" >&2
+  exit 1
+}
+
+gitleaks git --staged --redact --config .gitleaks.toml

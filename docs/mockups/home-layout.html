@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hearth: navigation model reference</title>
+<style>
+  :root{
+    --bg:#11151c; --panel:#1a2029; --panel2:#212936; --line:#2c3644;
+    --ink:#e8edf4; --dim:#93a1b5; --accent:#4c9aff;
+    --p1:#4c9aff; --p2:#ff6b8a; --p3:#ffc542; --p4:#3ddc97;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0a0d12;color:var(--ink);font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+       display:flex;flex-direction:column;align-items:center;gap:14px;padding:20px}
+  .caption{max-width:1180px;width:100%;color:#9fb0c6;font-size:14px}
+  .caption b{color:#fff}
+  .ipad{width:1180px;height:820px;background:var(--bg);border-radius:22px;overflow:hidden;
+        display:flex;flex-direction:column;border:10px solid #05070a;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+
+  header{height:64px;flex:0 0 64px;display:flex;align-items:center;justify-content:space-between;
+         padding:0 24px;border-bottom:1px solid var(--line);background:var(--panel)}
+  .clock{font-size:26px;font-weight:600;letter-spacing:.5px}
+  .today{color:var(--dim);font-size:15px}
+  .pin{font-size:13px;color:var(--dim);border:1px solid var(--line);padding:6px 12px;border-radius:8px}
+
+  main{flex:1;overflow:hidden;position:relative}
+  .view{position:absolute;inset:0;padding:20px;display:none;flex-direction:column;gap:16px}
+  .view.on{display:flex}
+
+  /* ---- HOME (tiles) ---- */
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:1fr 1fr;gap:16px;flex:1}
+  .tile{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px;overflow:hidden}
+  .tile h3{font-size:13px;letter-spacing:1.4px;text-transform:uppercase;color:var(--dim);font-weight:700}
+  .tile.wide{grid-column:span 2}
+  .chore-row{display:flex;align-items:center;gap:12px;padding:9px 12px;background:var(--panel2);border-radius:10px}
+  .who{width:30px;height:30px;border-radius:50%;flex:0 0 30px;display:grid;place-items:center;font-size:13px;font-weight:700;color:#0a0d12}
+  .chore-row .name{flex:1;font-size:16px}
+  .chk{width:26px;height:26px;border-radius:7px;border:2px solid var(--line)}
+  .chk.done{background:var(--p4);border-color:var(--p4)}
+  .agenda{display:flex;flex-direction:column;gap:9px}
+  .ev{display:flex;gap:12px;align-items:baseline;font-size:16px}
+  .ev .t{color:var(--dim);width:78px;flex:0 0 78px;font-variant-numeric:tabular-nums;font-size:14px}
+  .bar{display:flex;gap:4px;align-items:flex-end;height:56px}
+  .bar span{flex:1;background:var(--p1);border-radius:3px;opacity:.85}
+  .big{font-size:46px;font-weight:700;line-height:1}
+  .sub{color:var(--dim);font-size:14px}
+  .ghost{border-style:dashed;color:var(--dim);align-items:center;justify-content:center;text-align:center}
+
+  /* ---- CALENDAR (full page) ---- */
+  .calhead{display:flex;align-items:center;justify-content:space-between}
+  .calhead h2{font-size:26px;font-weight:600}
+  .btns{display:flex;gap:8px}
+  .btn{padding:9px 16px;border:1px solid var(--line);border-radius:10px;color:var(--dim);font-size:15px;background:var(--panel)}
+  .btn.sel{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .cal{flex:1;display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:26px repeat(5,1fr);
+       gap:6px;background:transparent}
+  .dow{color:var(--dim);font-size:12px;letter-spacing:1.2px;text-transform:uppercase;text-align:center;font-weight:700}
+  .day{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:7px 8px;display:flex;flex-direction:column;gap:4px;overflow:hidden}
+  .day .n{font-size:14px;color:var(--dim);font-weight:600}
+  .day.out{opacity:.35}
+  .day.now{border-color:var(--accent);background:#16233a}
+  .day.now .n{color:#fff}
+  .pill{font-size:11.5px;padding:3px 6px;border-radius:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#0a0d12;font-weight:600}
+
+  /* ---- CHORES (full page) ---- */
+  .people{display:flex;gap:10px}
+  .ptab{display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--panel);border:1px solid var(--line);border-radius:999px;font-size:15px}
+  .ptab.sel{border-color:var(--accent)}
+  .cols{flex:1;display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  .col{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px}
+  .col h4{font-size:14px;display:flex;align-items:center;gap:8px}
+  .card{background:var(--panel2);border-radius:10px;padding:11px 12px;font-size:15px;display:flex;flex-direction:column;gap:4px}
+  .card small{color:var(--dim);font-size:12px}
+  .card.done{opacity:.45;text-decoration:line-through}
+
+  /* ---- NAV ---- */
+  nav{height:82px;flex:0 0 82px;display:flex;border-top:1px solid var(--line);background:var(--panel)}
+  nav button{flex:1;background:none;border:0;color:var(--dim);font:inherit;font-size:15px;
+             display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer}
+  nav button .ic{font-size:23px}
+  nav button.on{color:#fff}
+  nav button.on .ic{color:var(--accent)}
+  nav button.dis{opacity:.3}
+</style>
+</head>
+<body>
+<div class="caption">
+  <b>Hearth: navigation model reference.</b> Home tile grid plus full-page views. Tap the bottom nav to switch. All data is fictional (Ada, Linus, Marie, Grace).
+  <br><br>
+  <b>What this mockup establishes:</b> the three-view navigation (Home, Calendar, Chores), the tile-grid landing view, and the full-bleed month calendar. These are accepted.
+  <br><br>
+  <b>What it does NOT reflect (superseded by later decisions, see DESIGN.md):</b>
+  chores are an <i>unassigned shared pool</i>, so the per-person attributions shown on the Chores page ("Marie, daily", "rotation to Linus") are wrong;
+  the "Chores due today" tile is replaced by two tiles, an unclaimed pool sorted overdue-first then by points with a "+N more" link, and a separate weekly leaderboard;
+  "Up next" is replaced by "Day at a glance", which includes what has already happened today and scrolls;
+  the date in the header matches the time's size;
+  and the app is light by day, dark by night, switching at configurable fixed times rather than being dark always.
+</div>
+<div class="ipad">
+  <header>
+    <div>
+      <div class="clock">7:42 <span style="font-size:16px;color:var(--dim)">AM</span></div>
+    </div>
+    <div class="today">Saturday, August 2</div>
+    <div class="pin">&#128274; Admin (PIN)</div>
+  </header>
+
+  <main>
+    <!-- HOME -->
+    <section class="view on" id="v-home">
+      <div class="grid">
+        <div class="tile wide">
+          <h3>Chores due today</h3>
+          <div class="chore-row"><div class="who" style="background:var(--p2)">L</div><div class="name">Unload dishwasher</div><div class="chk"></div></div>
+          <div class="chore-row"><div class="who" style="background:var(--p3)">M</div><div class="name">Feed the dog</div><div class="chk done"></div></div>
+          <div class="chore-row"><div class="who" style="background:var(--p1)">A</div><div class="name">Take out trash</div><div class="chk"></div></div>
+          <div class="chore-row"><div class="who" style="background:var(--p4)">G</div><div class="name">Tidy living room</div><div class="chk"></div></div>
+        </div>
+        <div class="tile">
+          <h3>Up next</h3>
+          <div class="agenda">
+            <div class="ev"><span class="t">9:00 AM</span><span>Soccer practice</span></div>
+            <div class="ev"><span class="t">12:30 PM</span><span>Lunch with friends</span></div>
+            <div class="ev"><span class="t">4:00 PM</span><span>Grocery run</span></div>
+            <div class="ev"><span class="t">6:30 PM</span><span>Small group</span></div>
+          </div>
+        </div>
+        <div class="tile">
+          <h3>This week</h3>
+          <div class="big">18/24</div>
+          <div class="sub">chores completed</div>
+          <div class="bar"><span style="height:70%"></span><span style="height:100%"></span><span style="height:55%"></span><span style="height:85%"></span><span style="height:40%"></span><span style="height:90%"></span><span style="height:25%"></span></div>
+        </div>
+        <div class="tile ghost"><div>+ future feature<br><span class="sub">weather &middot; meal plan &middot; shopping list</span></div></div>
+        <div class="tile ghost"><div>+ future feature</div></div>
+      </div>
+    </section>
+
+    <!-- CALENDAR -->
+    <section class="view" id="v-cal">
+      <div class="calhead">
+        <h2>August 2026</h2>
+        <div class="btns"><div class="btn">&#8249;</div><div class="btn">Today</div><div class="btn">&#8250;</div><div class="btn sel">Month</div><div class="btn">Week</div></div>
+      </div>
+      <div class="cal" id="calgrid"></div>
+    </section>
+
+    <!-- CHORES -->
+    <section class="view" id="v-chores">
+      <div class="calhead">
+        <h2>Chores</h2>
+        <div class="people">
+          <div class="ptab sel"><span class="who" style="background:var(--p1);width:22px;height:22px;flex:0 0 22px;font-size:11px">A</span>Ada</div>
+          <div class="ptab"><span class="who" style="background:var(--p2);width:22px;height:22px;flex:0 0 22px;font-size:11px">L</span>Linus</div>
+          <div class="ptab"><span class="who" style="background:var(--p3);width:22px;height:22px;flex:0 0 22px;font-size:11px">M</span>Marie</div>
+          <div class="ptab"><span class="who" style="background:var(--p4);width:22px;height:22px;flex:0 0 22px;font-size:11px">G</span>Grace</div>
+        </div>
+      </div>
+      <div class="cols">
+        <div class="col"><h4>Overdue</h4>
+          <div class="card">Water the plants<small>Marie &middot; 2 days late</small></div>
+        </div>
+        <div class="col"><h4>Today</h4>
+          <div class="card">Unload dishwasher<small>Linus &middot; daily</small></div>
+          <div class="card done">Feed the dog<small>Marie &middot; done 7:10 AM</small></div>
+          <div class="card">Take out trash<small>Ada &middot; Mon/Thu/Sat</small></div>
+          <div class="card">Tidy living room<small>Grace &middot; daily</small></div>
+        </div>
+        <div class="col"><h4>Tomorrow</h4>
+          <div class="card">Vacuum upstairs<small>rotation &rarr; Linus</small></div>
+          <div class="card">Change sheets<small>weekly &middot; anyone</small></div>
+        </div>
+        <div class="col"><h4>Recently done</h4>
+          <div class="card done">Mow the yard<small>Ada &middot; Thu</small></div>
+          <div class="card done">Clean bathroom<small>Grace &middot; Wed</small></div>
+          <div class="card done">Fold laundry<small>Linus &middot; Wed</small></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <nav>
+    <button class="on" onclick="go('home',this)"><span class="ic">&#9632;</span>Home</button>
+    <button onclick="go('cal',this)"><span class="ic">&#128197;</span>Calendar</button>
+    <button onclick="go('chores',this)"><span class="ic">&#10004;</span>Chores</button>
+    <button class="dis"><span class="ic">&#43;</span>Future feature</button>
+  </nav>
+</div>
+
+<script>
+function go(id, el){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('on'));
+  document.getElementById('v-'+id).classList.add('on');
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+}
+const dows=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const evs={2:[['Church','p2']],4:[['Soccer','p1'],['Dentist 3pm','p3']],6:[['Payday','p4']],
+ 9:[['Church','p2']],11:[['School starts','p3']],13:[['Small group','p1']],14:[['Date night','p2']],
+ 16:[['Church','p2']],18:[['Trash day','p4']],20:[['Piano','p1'],['Book club','p3']],
+ 23:[['Church','p2']],25:[['Oil change','p4']],27:[['Field trip','p3']],28:[['Anniversary','p2']],
+ 30:[['Church','p2']],31:[['Bills due','p4']]};
+const g=document.getElementById('calgrid');
+dows.forEach(d=>g.insertAdjacentHTML('beforeend','<div class="dow">'+d+'</div>'));
+// Aug 2026 starts Saturday; grid starts Sun Jul 26
+for(let i=0;i<35;i++){
+  const dnum=i-5; // cell 5 = Aug 1
+  let cls='day', label;
+  if(dnum<1){ cls+=' out'; label=26+i; }
+  else if(dnum>31){ cls+=' out'; label=dnum-31; }
+  else label=dnum;
+  if(dnum===2) cls+=' now';
+  let pills='';
+  (evs[dnum]||[]).forEach(e=>{pills+='<div class="pill" style="background:var(--'+e[1]+')">'+e[0]+'</div>';});
+  g.insertAdjacentHTML('beforeend','<div class="'+cls+'"><div class="n">'+label+'</div>'+pills+'</div>');
+}
+</script>
+</body>
+</html>

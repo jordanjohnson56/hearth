@@ -1,0 +1,37 @@
+# Hearth secret-scanning rules.
+#
+# This repository is public and the data it handles is a family's calendar and
+# two children's names and photos. Git history is permanent, so a leak here has
+# no remediation. These rules extend the gitleaks defaults with the credentials
+# specific to this project, which the defaults do not match.
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "google-secret-ical-url"
+description = "Google Calendar secret address (bearer credential to a full calendar)"
+regex = '''https://calendar\.google\.com/calendar/ical/[^/\s"']+/private-?[0-9a-fA-F]{16,}/basic\.ics'''
+tags = ["calendar", "credential"]
+
+[[rules]]
+id = "webcal-subscription-url"
+description = "webcal:// subscription URL"
+regex = '''webcal://[^\s"']+'''
+tags = ["calendar", "credential"]
+
+[[rules]]
+id = "ics-payload"
+description = "Inline iCalendar payload, real calendar data pasted into a file"
+regex = '''BEGIN:VCALENDAR'''
+tags = ["calendar", "pii"]
+
+[allowlist]
+description = "Files that legitimately contain the patterns above"
+# This file defines the patterns it would otherwise match, and DESIGN.md
+# documents the URL shape. Keep every documented example obviously fake, e.g.
+# https://calendar.google.com/calendar/ical/EXAMPLE/private-EXAMPLE0000000000/basic.ics
+paths = [
+  '''\.gitleaks\.toml$''',
+  '''(^|/)DESIGN\.md$''',
+]
