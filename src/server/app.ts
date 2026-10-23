@@ -36,7 +36,7 @@ export function createApp(options: AppOptions): Express {
     if (feature.router) app.use(`/api/${feature.id}`, feature.router);
   }
 
-  app.get('/api/events', eventsHandler(options.broadcaster ?? createBroadcaster()));
+  app.get('/api/events', eventsHandler(options.broadcaster ?? createBroadcaster(options.logger)));
 
   // Anything under /api that reached here is unknown: JSON, never the SPA.
   app.use('/api', (_req, res) => {

@@ -2,6 +2,7 @@ import type { IncomingHttpHeaders, IncomingMessage } from 'node:http';
 import request from 'supertest';
 import { describe, expect, it, onTestFinished, vi } from 'vitest';
 import { testAppOptions } from '../../test/helpers/app.js';
+import { captureLogger } from '../../test/helpers/logger.js';
 import { createApp } from './app.js';
 import { createBroadcaster } from './broadcaster.js';
 import type { Broadcaster } from './broadcaster.js';
@@ -71,13 +72,13 @@ async function openEventStream(broadcaster: Broadcaster): Promise<OpenStream> {
 
 describe('GET /api/events', () => {
   it('opens with a comment line, so a proxy forwards the headers at once', async () => {
-    const stream = await openEventStream(createBroadcaster());
+    const stream = await openEventStream(createBroadcaster(captureLogger().logger));
 
     expect(stream.opening).toBe(': connected\n\n');
   });
 
   it('streams a published change hint as an SSE message', async () => {
-    const broadcaster = createBroadcaster();
+    const broadcaster = createBroadcaster(captureLogger().logger);
     const stream = await openEventStream(broadcaster);
 
     const chunk = stream.nextChunk();
@@ -91,7 +92,7 @@ describe('GET /api/events', () => {
   });
 
   it('drops the subscriber when the client disconnects', async () => {
-    const broadcaster = createBroadcaster();
+    const broadcaster = createBroadcaster(captureLogger().logger);
     const stream = await openEventStream(broadcaster);
     expect(broadcaster.subscriberCount).toBe(1);
 
@@ -103,7 +104,7 @@ describe('GET /api/events', () => {
   });
 
   it('sends every open stream the same hint', async () => {
-    const broadcaster = createBroadcaster();
+    const broadcaster = createBroadcaster(captureLogger().logger);
     const first = await openEventStream(broadcaster);
     const second = await openEventStream(broadcaster);
 
@@ -116,12 +117,26 @@ describe('GET /api/events', () => {
     ]);
   });
 
+  it('still streams a hint when another subscriber throws', async () => {
+    const broadcaster = createBroadcaster(captureLogger().logger);
+    broadcaster.subscribe(() => {
+      throw new Error('write after end');
+    });
+    const stream = await openEventStream(broadcaster);
+
+    const chunk = stream.nextChunk();
+    broadcaster.publish('chores');
+
+    expect(await chunk).toBe('data: {"feature":"chores"}\n\n');
+    expect(broadcaster.subscriberCount).toBe(1);
+  });
+
   it('sends a keepalive comment on a quiet stream and stops after disconnect', async () => {
     vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
     onTestFinished(() => {
       vi.useRealTimers();
     });
-    const broadcaster = createBroadcaster();
+    const broadcaster = createBroadcaster(captureLogger().logger);
     const stream = await openEventStream(broadcaster);
 
     const chunk = stream.nextChunk();

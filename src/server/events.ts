@@ -30,6 +30,11 @@ export function eventsHandler(broadcaster: Broadcaster): RequestHandler {
     res.write(': connected\n\n');
 
     const unsubscribe = broadcaster.subscribe((feature) => {
+      // The socket can be gone before 'close' has unsubscribed us.
+      if (res.writableEnded || res.destroyed) {
+        unsubscribe();
+        return;
+      }
       res.write(`data: ${encodeChangeHint(feature)}\n\n`);
     });
     const keepalive = setInterval(() => {
