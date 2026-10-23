@@ -111,31 +111,117 @@ interface Occurrence {
 }
 
 /**
- * The occurrences of one UID that fall in the window. The seam for
- * recurrence (#18): a recurring master is where RRULE/RDATE expansion with
- * `group.exceptions` goes; until then it is skipped and counted. A missing
- * master with orphan overrides is also left to #18.
+ * The occurrences of one UID that fall in the window: a single event, or a
+ * recurring master expanded with its EXDATEs and RECURRENCE-ID overrides.
+ * The exceptions are only the group's own, so two series with an override
+ * at the same time never borrow each other's. Overrides without a master
+ * (orphans) are shown as single events, as Google Calendar does.
  */
 function occurrencesOf(group: UidGroup, window: InstantWindow): Occurrence[] {
   const master = group.masters[0];
-  if (master === undefined) throw new Error('override without a master');
-  const event = new ICAL.Event(master, { exceptions: [] });
-  if (event.isRecurring()) throw new Error('recurrence expansion not implemented');
+  if (master === undefined) {
+    return group.exceptions.flatMap((orphan) => singleOccurrence(group.uid, orphan, window));
+  }
   if (isCancelled(master)) return [];
+  const event = new ICAL.Event(master, { exceptions: group.exceptions });
+  if (!event.isRecurring()) return singleOccurrence(group.uid, master, window);
+  const occurrences: Occurrence[] = [];
+  const visited = new Set<ICAL.Component>();
+  const iterator = event.iterator(expansionStart(event, window));
+  let count = 0;
+  let time: ICAL.Time | undefined;
+  while ((time = iterator.next() as ICAL.Time | undefined)) {
+    // An unbounded rule never completes: stop once the instance itself
+    // starts after the window. The cap is for a rule that is wrong rather
+    // than long (a per-minute rule): the whole event is skipped and counted.
+    if (count++ >= MAX_OCCURRENCES) throw new Error('too many occurrences');
+    if (startsAfter(time, window)) break;
+    const details: OccurrenceDetails = event.getOccurrenceDetails(time);
+    visited.add(details.item.component);
+    const found = occurrence(group.uid, details.item, details.recurrenceId, details.startDate, details.endDate, window);
+    if (keep(found, window)) occurrences.push(found);
+  }
+  // An override moves its instance in time, possibly from outside the scan
+  // (after the window, or before an expansion start) to inside it.
+  for (const exception of group.exceptions) {
+    if (!visited.has(exception)) occurrences.push(...singleOccurrence(group.uid, exception, window));
+  }
+  return occurrences;
+}
+
+/**
+ * What getOccurrenceDetails returns: the instance's own time, and the
+ * override (with its moved start and end) when one replaces it, else the
+ * master. Declared here because the package's typing of it does not
+ * resolve under NodeNext.
+ */
+interface OccurrenceDetails {
+  recurrenceId: ICAL.Time;
+  item: ICAL.Event;
+  startDate: ICAL.Time;
+  endDate: ICAL.Time;
+}
+
+/** Iterations per master before the event is given up on. */
+const MAX_OCCURRENCES = 10_000;
+
+/**
+ * Where to start scanning a DAILY or WEEKLY rule with no COUNT: a whole
+ * number of periods after DTSTART, two periods before the window, so an
+ * event that has run for decades is not scanned from its first day.
+ * `iterator(start)` re-bases the rule on `start`, so the weekday and wall
+ * time must be DTSTART's own; a COUNT would restart; MONTHLY and YEARLY
+ * rules depend on the month day, so they scan from DTSTART.
+ */
+function expansionStart(event: ICAL.Event, window: InstantWindow): ICAL.Time | undefined {
+  const rule: unknown = event.component.getFirstPropertyValue('rrule');
+  if (!(rule instanceof ICAL.Recur) || rule.count !== null) return undefined;
+  if (rule.freq !== 'DAILY' && rule.freq !== 'WEEKLY') return undefined;
+  const start = event.startDate as ICAL.Time | null;
+  if (start === null) return undefined;
+  const periodDays = (rule.freq === 'WEEKLY' ? 7 : 1) * rule.interval;
+  const periodMs = periodDays * 86_400_000;
+  const periods = Math.floor((window.start.getTime() - instantOf(start, window.zone).getTime()) / periodMs) - 2;
+  if (periods <= 0) return undefined;
+  const from = start.clone();
+  from.day += periods * periodDays;
+  return from;
+}
+
+/** Whether the instance at `time` begins after the window ends. */
+function startsAfter(time: ICAL.Time, window: InstantWindow): boolean {
+  if (time.isDate) return dateOf(time) >= window.toExclusive;
+  return instantOf(time, window.zone) >= window.end;
+}
+
+/** A VEVENT on its own (not recurring, or an override shown by itself). */
+function singleOccurrence(uid: string, vevent: ICAL.Component, window: InstantWindow): Occurrence[] {
+  if (isCancelled(vevent)) return [];
+  const event = new ICAL.Event(vevent, { exceptions: [] });
   // Reading startDate/endDate is what throws for a malformed DTSTART or
   // DURATION. The typings say startDate is always a Time; without DTSTART
   // it is null at runtime.
   const start = event.startDate as ICAL.Time | null;
   if (start === null) throw new Error('VEVENT without DTSTART');
-  const occurrence: Occurrence = {
-    uid: group.uid,
-    recurrenceId: null,
-    item: event,
-    start,
-    end: event.endDate,
-    zone: window.zone,
-  };
-  return inWindow(timingOf(occurrence), window) ? [occurrence] : [];
+  const recurrenceId = event.recurrenceId as ICAL.Time | null;
+  const found = occurrence(uid, event, recurrenceId, start, event.endDate, window);
+  return keep(found, window) ? [found] : [];
+}
+
+function occurrence(
+  uid: string,
+  item: ICAL.Event,
+  recurrenceId: ICAL.Time | null,
+  start: ICAL.Time,
+  end: ICAL.Time,
+  window: InstantWindow,
+): Occurrence {
+  return { uid, recurrenceId, item, start, end, zone: window.zone };
+}
+
+/** An instance counts when it is not cancelled and overlaps the window. */
+function keep(occurrence: Occurrence, window: InstantWindow): boolean {
+  return !isCancelled(occurrence.item.component) && inWindow(timingOf(occurrence), window);
 }
 
 function isCancelled(vevent: ICAL.Component): boolean {

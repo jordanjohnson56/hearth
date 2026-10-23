@@ -122,14 +122,31 @@ describe('parseFeed: single events', () => {
     expect(byUid(icalFixture('edge-cases')).event('untitled@cal.example')?.title).toBe('');
   });
 
-  it('skips and counts a recurring event until expansion lands (#18)', () => {
-    const { skipped, uids } = byUid(icalFixture('weekly'));
-    expect(uids).toEqual([]);
-    expect(skipped).toBe(1);
-  });
-
   it('returns no events and no skips for an empty but valid feed', () => {
     expect(parseFeed(icalFixture('empty'), WINDOW)).toEqual({ events: [], skipped: 0 });
+  });
+});
+
+describe('parseFeed: recurrence', () => {
+  it('expands a weekly rule into one occurrence per week in the window, each carrying its recurrence id', () => {
+    const window = { from: '2026-02-23' as LocalDate, to: '2026-03-15' as LocalDate, zone: CHICAGO };
+
+    const { events, skipped } = parseFeed(icalFixture('rrule-weekly-dst'), window);
+
+    expect(skipped).toBe(0);
+    expect(events).toEqual([
+      {
+        uid: 'weekly@cal.example',
+        recurrenceId: '2026-02-23T09:00:00',
+        title: 'Grace weekly swim',
+        location: null,
+        kind: 'timed',
+        startAt: new Date('2026-02-23T15:00:00Z'),
+        endAt: new Date('2026-02-23T16:00:00Z'),
+      },
+      expect.objectContaining({ recurrenceId: '2026-03-02T09:00:00', startAt: new Date('2026-03-02T15:00:00Z') }),
+      expect.objectContaining({ recurrenceId: '2026-03-09T09:00:00', startAt: new Date('2026-03-09T14:00:00Z') }),
+    ]);
   });
 });
 
