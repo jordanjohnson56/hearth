@@ -148,6 +148,87 @@ describe('parseFeed: recurrence', () => {
       expect.objectContaining({ recurrenceId: '2026-03-09T09:00:00', startAt: new Date('2026-03-09T14:00:00Z') }),
     ]);
   });
+
+  it('keeps 09:00 wall time across both 2026 Chicago DST transitions, so the instants shift by an hour', () => {
+    const window = { from: '2026-02-01' as LocalDate, to: '2026-12-31' as LocalDate, zone: CHICAGO };
+
+    const { events } = parseFeed(icalFixture('rrule-weekly-dst'), window);
+
+    const startOf = (recurrenceId: string) => {
+      const event = events.find((e) => e.recurrenceId === recurrenceId);
+      return event?.kind === 'timed' ? event.startAt.toISOString() : undefined;
+    };
+    // Spring forward on March 8: UTC-6 becomes UTC-5.
+    expect(startOf('2026-03-02T09:00:00')).toBe('2026-03-02T15:00:00.000Z');
+    expect(startOf('2026-03-09T09:00:00')).toBe('2026-03-09T14:00:00.000Z');
+    // Fall back on November 1: UTC-5 becomes UTC-6.
+    expect(startOf('2026-10-26T09:00:00')).toBe('2026-10-26T14:00:00.000Z');
+    expect(startOf('2026-11-02T09:00:00')).toBe('2026-11-02T15:00:00.000Z');
+    // Every Monday from Feb 2 through Dec 28: 48 occurrences, none doubled.
+    expect(events).toHaveLength(48);
+    expect(new Set(events.map((e) => e.recurrenceId)).size).toBe(48);
+  });
+
+  describe('EXDATE and RECURRENCE-ID overrides', () => {
+    const window = { from: '2026-09-01' as LocalDate, to: '2026-10-31' as LocalDate, zone: CHICAGO };
+    const feed = () => parseFeed(icalFixture('exdate-and-override'), window);
+    const series = (uid: string) =>
+      feed()
+        .events.filter((e) => e.uid === uid)
+        .map((e) => (e.kind === 'timed' ? [e.recurrenceId, e.startAt.toISOString(), e.title] : [e.recurrenceId]));
+
+    it('removes an EXDATE instance (TZID or UTC form) and leaves its neighbours', () => {
+      const ids = series('piano@cal.example').map(([id]) => id);
+      expect(ids).toContain('2026-09-14T09:00:00');
+      expect(ids).not.toContain('2026-09-21T09:00:00');
+      expect(ids).not.toContain('2026-10-12T09:00:00');
+      expect(ids).toContain('2026-10-19T09:00:00');
+    });
+
+    it('shows a moved instance once, at its new time with the override title and location, even when the override precedes the master', () => {
+      const piano = feed().events.filter((e) => e.uid === 'piano@cal.example');
+      const moved = piano.filter((e) => e.recurrenceId === '2026-09-28T09:00:00');
+      expect(moved).toEqual([
+        {
+          uid: 'piano@cal.example',
+          recurrenceId: '2026-09-28T09:00:00',
+          title: 'Ada piano (moved)',
+          location: 'Studio B',
+          kind: 'timed',
+          startAt: new Date('2026-09-30T19:00:00Z'),
+          endAt: new Date('2026-09-30T20:00:00Z'),
+        },
+      ]);
+      expect(piano.filter((e) => e.kind === 'timed' && e.startAt.getTime() === Date.parse('2026-09-28T14:00:00Z'))).toEqual([]);
+    });
+
+    it('drops a cancelled override and keeps the rest of the series', () => {
+      expect(series('piano@cal.example')).toEqual([
+        ['2026-09-07T09:00:00', '2026-09-07T14:00:00.000Z', 'Ada piano'],
+        ['2026-09-14T09:00:00', '2026-09-14T14:00:00.000Z', 'Ada piano'],
+        ['2026-09-28T09:00:00', '2026-09-30T19:00:00.000Z', 'Ada piano (moved)'],
+        ['2026-10-19T09:00:00', '2026-10-19T14:00:00.000Z', 'Ada piano'],
+        ['2026-10-26T09:00:00', '2026-10-26T14:00:00.000Z', 'Ada piano'],
+      ]);
+    });
+
+    it('relates an override only to the master with its UID', () => {
+      // swim's override has the same RECURRENCE-ID timestamp as a piano instance.
+      expect(series('swim@cal.example')).toContainEqual(['2026-09-14T09:00:00', '2026-09-14T16:00:00.000Z', 'Grace swim (late)']);
+      expect(series('piano@cal.example')).toContainEqual(['2026-09-14T09:00:00', '2026-09-14T14:00:00.000Z', 'Ada piano']);
+    });
+
+    it('shows an instance moved into the window from after it', () => {
+      const tutoring = series('tutoring@cal.example');
+      expect(tutoring).toHaveLength(10);
+      expect(tutoring.at(-1)).toEqual(['2026-11-05T16:00:00', '2026-10-30T21:00:00.000Z', 'Linus tutoring (early)']);
+    });
+
+    it('shows an override without a master as a single event', () => {
+      expect(series('orphan@cal.example')).toEqual([['2026-10-01T10:00:00', '2026-10-01T15:30:00.000Z', 'Marie book club']]);
+      expect(feed().skipped).toBe(0);
+    });
+  });
 });
 
 describe('parseFeed: the window', () => {
