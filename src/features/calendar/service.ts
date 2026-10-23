@@ -94,7 +94,7 @@ export function createCalendarService(options: CalendarServiceOptions): Calendar
     }
     // Rows and status land together: a reader never sees new rows with the
     // old status or the reverse. Skipped if the source was deleted meanwhile.
-    const changed = db.transaction(() => {
+    const changed = db.transaction((): boolean => {
       if (getSource(db, id) === undefined) return false;
       const before = digestOf(listEventsOf(db, id));
       replaceEvents(db, id, parsed.events);
@@ -148,15 +148,14 @@ export function createCalendarService(options: CalendarServiceOptions): Calendar
       // refresh() never rejects for a fetch problem, so a rejection here is a
       // bug (e.g. the database); allSettled still keeps it from stopping the others.
       const results = await Promise.allSettled(ids.map((id) => refresh(id)));
-      let changed = false;
       results.forEach((result, index) => {
         if (result.status === 'rejected') {
           logger.error({ err: result.reason as unknown, sourceId: ids[index] }, 'calendar refresh failed');
-        } else if (result.value) {
-          changed = true;
         }
       });
-      if (changed) broadcaster.publish('calendar');
+      if (results.some((result) => result.status === 'fulfilled' && result.value)) {
+        broadcaster.publish('calendar');
+      }
     },
 
     eventsBetween(from, to) {

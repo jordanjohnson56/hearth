@@ -101,6 +101,12 @@ the database. _Avoid_: feed URL, link.
 minutes. A source that has never succeeded is "not yet fetched", not stale.
 _Avoid_: outdated, expired.
 
+**Change digest**: a SHA-256 over a source's stored event set, order
+independent, computed from the rows a refresh replaces and from the rows it
+writes. A poll or refresh publishes the `calendar` change hint only when the
+two differ; an admin add, change or delete publishes one hint on its own.
+_Avoid_: checksum, etag.
+
 **Pending migration**: a migration in the code that the database has not
 recorded as applied. The server applies pending migrations at boot, before
 it listens, and refuses to start if one fails.

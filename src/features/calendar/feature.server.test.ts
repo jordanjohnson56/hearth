@@ -1,6 +1,6 @@
 import type { Express } from 'express';
 import request from 'supertest';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { testApp, testAppOptions } from '../../../test/helpers/app.js';
 import { fakeFetch, feedResponse, networkError, timeoutError } from '../../../test/helpers/fetch.js';
 import type { FakeEndpoint } from '../../../test/helpers/fetch.js';
@@ -8,6 +8,7 @@ import { icalFixture } from '../../../test/helpers/ical.js';
 import { captureLogger } from '../../../test/helpers/logger.js';
 import { createApp } from '../../server/app.js';
 import { createBroadcaster } from '../../server/broadcaster.js';
+import { startScheduler } from '../../server/scheduler.js';
 import { appliedMigrations, runMigrations } from '../../server/db/migrate.js';
 import { migrationSets } from '../../server/db/schema.js';
 import { calendarServer } from './feature.server.js';
@@ -698,6 +699,45 @@ describe('change hints and the poll job', () => {
     expect(calls.sort()).toEqual([ADA_URL, MARIE_URL].sort());
     const sources = (await request(app).get('/api/calendar/sources')).body as { sources: SourceWire[] };
     expect(sources.sources.map((s) => s.lastError)).toEqual([null, 'network']);
+  });
+});
+
+describe('the poll job under the scheduler', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('runs at boot and every 10 minutes, and a tick during a slow run is skipped', async () => {
+    // The feed answers only when the test says so, to hold a run open.
+    let answer: (res: Response) => void = () => undefined;
+    const h = await pollingHarness({
+      [ADA_URL]: () =>
+        new Promise<Response>((resolve) => {
+          answer = resolve;
+        }),
+    });
+    const adding = addSource(h);
+    while (h.calls.length === 0) await new Promise((resolve) => setImmediate(resolve));
+    answer(feedResponse(icalFixture('single-events')));
+    await adding;
+    h.calls.length = 0;
+    // Real sockets are done with; timers can be faked now.
+    vi.useFakeTimers();
+    const scheduler = startScheduler([h.job], captureLogger().logger);
+
+    expect(h.calls).toEqual([ADA_URL]);
+    answer(feedResponse(icalFixture('single-events')));
+    await vi.advanceTimersByTimeAsync(600_000);
+    expect(h.calls).toEqual([ADA_URL, ADA_URL]);
+
+    // The second run is still waiting on its feed through two more ticks.
+    await vi.advanceTimersByTimeAsync(1_200_000);
+    expect(h.calls).toEqual([ADA_URL, ADA_URL]);
+
+    answer(feedResponse(icalFixture('single-events')));
+    await vi.advanceTimersByTimeAsync(600_000);
+    expect(h.calls).toEqual([ADA_URL, ADA_URL, ADA_URL]);
+    scheduler.stop();
   });
 });
 
