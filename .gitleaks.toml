@@ -31,7 +31,12 @@ description = "Files that legitimately contain the patterns above"
 # This file defines the patterns it would otherwise match, and DESIGN.md
 # documents the URL shape. Keep every documented example obviously fake, e.g.
 # https://calendar.google.com/calendar/ical/EXAMPLE/private-EXAMPLE0000000000/basic.ics
+# Hand-written iCalendar test fixtures (fictional family, hosts like
+# cal.example, never a real export). This is the only place an iCalendar
+# payload may live; *.ics stays gitignored and scripts/privacy-check.sh
+# still rejects any tracked .ics file.
 paths = [
   '''\.gitleaks\.toml$''',
   '''(^|/)DESIGN\.md$''',
+  '''^test/fixtures/ical/[^/]+\.txt$''',
 ]

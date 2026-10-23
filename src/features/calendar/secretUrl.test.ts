@@ -61,6 +61,8 @@ describe('SecretUrl masking', () => {
   it('shows only the fingerprint when stringified, interpolated or serialized', () => {
     const url = SecretUrl.parse(RAW);
     expect(url.toString()).toBe(FINGERPRINT);
+    // The interpolation is the point of the test: it must give the mask.
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     expect(`${url}`).toBe(FINGERPRINT);
     expect(String(url)).toBe(FINGERPRINT);
     expect(JSON.stringify({ url })).toBe(`{"url":"${FINGERPRINT}"}`);
