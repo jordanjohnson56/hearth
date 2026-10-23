@@ -2,9 +2,11 @@
  * Theme: every color the app uses, as custom properties, one set per theme.
  * Components use these tokens only; they never write a color literal.
  *
- * M0 picks the theme from the device (prefers-color-scheme), light by
- * default. M1 switches by the clock in the configured zone by setting
- * data-theme="light" or "dark" on <html>, which overrides the device here.
+ * The client sets data-theme="light" or "dark" on <html> from the
+ * household's switch times, evaluated by the clock in the configured zone
+ * (src/client/theme.ts), and that attribute wins here. The device setting
+ * (prefers-color-scheme) only shows in the moment before the client runs,
+ * and in a page served without the client.
  */
 
 :root {

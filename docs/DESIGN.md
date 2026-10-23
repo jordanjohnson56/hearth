@@ -298,7 +298,8 @@ Touch targets stay ≥ 44 px. That is a rule for a class of device, and it is fi
 ## 9. Theming
 
 - Light by day, dark by night.
-- The switch times are two configurable fixed times (light-from, dark-from) stored in settings. They are evaluated in the configured zone, not the device's.
+- The switch times are two configurable fixed times (light-from, dark-from) stored in settings as `HH:MM`, defaulting to 07:00 and 19:30. They are evaluated in the configured zone, not the device's. At exactly light-from the theme is light; at exactly dark-from it is dark; either order works, so a dark period (or a light one) may wrap midnight. A switch minute that a DST gap skips takes effect at the first wall minute after the gap.
+- The client evaluates every minute on the wall clock with `Intl` parts (`src/core/theme.ts`) and sets `data-theme` on `<html>`; the device's own light/dark setting is only a fallback before the client runs. The times are fetched at load and on the 5-minute backstop, so an admin edit applies at once on the editing device and reaches the wall within five minutes. There is no manual toggle.
 - The theme is defined as CSS custom properties with one set per theme. Components never hard-code colors.
 - Each person's color must stay legible in both themes.
 

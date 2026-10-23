@@ -69,6 +69,12 @@ issues for one admin session; every admin mutation carries it as
 `Authorization: Bearer`. It is never stored anywhere but memory.
 _Avoid_: session cookie, API key.
 
+**Theme times**: the two wall-clock times, light-from and dark-from (`HH:MM`
+in the configured zone), between which the display is light or dark. The
+theme is light from light-from up to dark-from and dark the rest of the day,
+in wall-clock minute order, whichever of the two comes first. _Avoid_:
+night mode, dark mode toggle.
+
 **Pending migration**: a migration in the code that the database has not
 recorded as applied. The server applies pending migrations at boot, before
 it listens, and refuses to start if one fails.

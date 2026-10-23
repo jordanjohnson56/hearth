@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import type { SubmitEvent } from 'react';
+import { isThemeTimes } from '../../core/theme.js';
 import { clientFeatureList } from '../../features/registry.client.js';
+import { setThemeTimes, useThemeTimes } from '../theme.js';
 import { PinPad } from './PinPad.js';
 import { readErrorMessage, useAdminSession } from './session.js';
 
@@ -199,7 +201,12 @@ function Panel() {
         </h2>
         <ChangePin />
       </section>
-      {/* Theme times (light from, dark from) go here when the theme switch lands. */}
+      <section className="admin-section" aria-labelledby="admin-theme">
+        <h2 id="admin-theme" className="admin-section-title">
+          Theme
+        </h2>
+        <ThemeTimesForm />
+      </section>
       {panels.map(({ feature, Component }) => (
         <section key={feature.id} className="admin-section" aria-labelledby={`admin-${feature.id}`}>
           <h2 id={`admin-${feature.id}`} className="admin-section-title">
@@ -280,6 +287,84 @@ function ChangePin() {
           value={pin}
           onChange={(event) => {
             setPin(event.target.value);
+          }}
+        />
+      </label>
+      <button type="submit" className="button button-primary" disabled={busy}>
+        Save
+      </button>
+      <p className="admin-message" data-tone={tone} role="status">
+        {message}
+      </p>
+    </form>
+  );
+}
+
+/**
+ * The switch times. A save applies on this device the moment the server
+ * confirms it (the wall picks it up on its next backstop).
+ */
+function ThemeTimesForm() {
+  const session = useAdminSession();
+  const inUse = useThemeTimes();
+  const [lightFrom, setLightFrom] = useState(inUse.lightFrom);
+  const [darkFrom, setDarkFrom] = useState(inUse.darkFrom);
+  const [message, setMessage] = useState('');
+  const [tone, setTone] = useState<'error' | 'info'>('info');
+  const [busy, setBusy] = useState(false);
+
+  const submit = (event: SubmitEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setBusy(true);
+    session
+      .authFetch('/api/settings/theme', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lightFrom, darkFrom }),
+      })
+      .then(async (res) => {
+        if (res.ok) {
+          const body: unknown = await res.json();
+          if (isThemeTimes(body)) setThemeTimes(body);
+          setTone('info');
+          setMessage('Theme times saved');
+        } else {
+          setTone('error');
+          setMessage(await readErrorMessage(res));
+        }
+      })
+      .catch(() => {
+        setTone('error');
+        setMessage('Could not reach Hearth');
+      })
+      .finally(() => {
+        setBusy(false);
+      });
+  };
+
+  return (
+    <form className="admin-form" onSubmit={submit}>
+      <label className="admin-field">
+        Light from
+        <input
+          className="admin-input admin-input-time"
+          type="time"
+          required
+          value={lightFrom}
+          onChange={(event) => {
+            setLightFrom(event.target.value);
+          }}
+        />
+      </label>
+      <label className="admin-field">
+        Dark from
+        <input
+          className="admin-input admin-input-time"
+          type="time"
+          required
+          value={darkFrom}
+          onChange={(event) => {
+            setDarkFrom(event.target.value);
           }}
         />
       </label>
