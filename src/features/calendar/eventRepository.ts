@@ -34,16 +34,19 @@ function toEvent(row: EventRow): StoredEvent {
     title: row.title,
     location: row.location,
   };
-  // The CHECK constraint guarantees the pair matching `kind` is non-null.
+  // The table CHECK guarantees the pair matching `kind` is non-null; a row
+  // that breaks it is corrupt and is refused rather than read as a 1970 event.
   if (row.kind === 'timed') {
-    return { ...base, kind: 'timed', startAt: new Date(row.start_at ?? 0), endAt: new Date(row.end_at ?? 0) };
+    if (row.start_at === null || row.end_at === null) throw corruptRow(row);
+    return { ...base, kind: 'timed', startAt: new Date(row.start_at), endAt: new Date(row.end_at) };
   }
-  return {
-    ...base,
-    kind: 'allDay',
-    startDate: (row.start_date ?? '') as LocalDate,
-    endDate: (row.end_date ?? '') as LocalDate,
-  };
+  if (row.start_date === null || row.end_date === null) throw corruptRow(row);
+  return { ...base, kind: 'allDay', startDate: row.start_date as LocalDate, endDate: row.end_date as LocalDate };
+}
+
+/** Ids only: the title or location could be anything the feed sent. */
+function corruptRow(row: EventRow): Error {
+  return new Error(`calendar_event row ${row.id} of source ${row.source_id} is ${row.kind} without its start and end`);
 }
 
 /**
