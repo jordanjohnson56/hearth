@@ -1,15 +1,11 @@
 import type { IncomingHttpHeaders, IncomingMessage } from 'node:http';
-import { fileURLToPath } from 'node:url';
 import request from 'supertest';
 import { describe, expect, it, onTestFinished, vi } from 'vitest';
+import { testAppOptions } from '../../test/helpers/app.js';
 import { createApp } from './app.js';
 import { createBroadcaster } from './broadcaster.js';
 import type { Broadcaster } from './broadcaster.js';
 import { KEEPALIVE_INTERVAL_MS } from './events.js';
-
-const clientDist = fileURLToPath(
-  new URL('../../test/fixtures/client-dist', import.meta.url),
-);
 
 interface OpenStream {
   status: number;
@@ -27,7 +23,7 @@ interface OpenStream {
  * stream never ends on its own, so the test reads chunks and then aborts.
  */
 async function openEventStream(broadcaster: Broadcaster): Promise<OpenStream> {
-  const app = createApp({ clientDist, broadcaster });
+  const app = createApp(testAppOptions({ broadcaster }));
   const req = request(app).get('/api/events').buffer(false);
 
   // Queue chunks as they arrive, so none is lost between reads.

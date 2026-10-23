@@ -5,11 +5,16 @@ import { serverFeatureList } from '../features/registry.server.js';
 import type { ServerFeature } from '../features/types.js';
 import { createBroadcaster } from './broadcaster.js';
 import type { Broadcaster } from './broadcaster.js';
+import type { Config } from './config.js';
 import { eventsHandler } from './events.js';
+import type { Logger } from './logger.js';
 
 export interface AppOptions {
   /** Directory holding the built client (index.html plus assets). */
   clientDist: string;
+  /** Validated bootstrap config; the app never reads process.env. */
+  config: Config;
+  logger: Logger;
   /** Features to mount. Defaults to the server registry; tests pass their own. */
   features?: readonly ServerFeature[];
   /**
@@ -44,7 +49,7 @@ export function createApp(options: AppOptions): Express {
     });
   });
 
-  app.use(errorBoundary);
+  app.use(errorBoundary(options.logger));
 
   return app;
 }
@@ -52,20 +57,23 @@ export function createApp(options: AppOptions): Express {
 /**
  * The HTTP error boundary. Responds with the status's reason phrase only:
  * never the error's own message (it may carry a URL or a path) and never a
- * stack trace.
+ * stack trace. A 5xx is logged by method and path: never the query string
+ * (`req.path` has none) and never the body, since either could carry an
+ * iCal URL. The logger's `err` serializer redacts URLs in the message.
  */
-const errorBoundary: ErrorRequestHandler = (err: unknown, _req, res, next) => {
-  if (res.headersSent) {
-    next(err);
-    return;
-  }
-  const status = httpStatusOf(err);
-  if (status >= 500) {
-    // Replaced by the structured logger in M0.3.
-    console.error(err);
-  }
-  sendError(res, status);
-};
+function errorBoundary(logger: Logger): ErrorRequestHandler {
+  return (err: unknown, req, res, next) => {
+    if (res.headersSent) {
+      next(err);
+      return;
+    }
+    const status = httpStatusOf(err);
+    if (status >= 500) {
+      logger.error({ err, method: req.method, path: req.path, status }, 'request failed');
+    }
+    sendError(res, status);
+  };
+}
 
 function httpStatusOf(err: unknown): number {
   if (typeof err === 'object' && err !== null) {
