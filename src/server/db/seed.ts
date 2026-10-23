@@ -10,10 +10,10 @@ import type { Person, PersonInput } from './personRepository.js';
 
 /** Distinct colors, no avatars (the client falls back to a colored initial). */
 export const FICTIONAL_FAMILY: readonly PersonInput[] = [
-  { displayName: 'Ada', color: '#c2410c' },
-  { displayName: 'Linus', color: '#1d4ed8' },
-  { displayName: 'Marie', color: '#15803d' },
-  { displayName: 'Grace', color: '#7e22ce' },
+  { displayName: 'Ada', color: 'ember' },
+  { displayName: 'Linus', color: 'lake' },
+  { displayName: 'Marie', color: 'moss' },
+  { displayName: 'Grace', color: 'plum' },
 ];
 
 /**

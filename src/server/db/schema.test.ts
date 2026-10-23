@@ -75,7 +75,7 @@ describe('the core migration set', () => {
         .prepare(
           'INSERT INTO person (display_name, color, avatar_path, icon) VALUES (@display_name, @color, @avatar_path, @icon)',
         )
-        .run({ display_name: 'Ada', color: '#3a7bd5', avatar_path: null, icon: null, ...row });
+        .run({ display_name: 'Ada', color: 'lake', avatar_path: null, icon: null, ...row });
 
     it('accepts a person with or without an avatar', () => {
       const db = coreDatabase();
@@ -83,8 +83,8 @@ describe('the core migration set', () => {
       insert(db, { display_name: 'Linus', avatar_path: 'avatars/linus.png' });
 
       expect(db.prepare('SELECT display_name, color, avatar_path FROM person ORDER BY id').all()).toEqual([
-        { display_name: 'Ada', color: '#3a7bd5', avatar_path: null },
-        { display_name: 'Linus', color: '#3a7bd5', avatar_path: 'avatars/linus.png' },
+        { display_name: 'Ada', color: 'lake', avatar_path: null },
+        { display_name: 'Linus', color: 'lake', avatar_path: 'avatars/linus.png' },
       ]);
     });
 
@@ -92,9 +92,9 @@ describe('the core migration set', () => {
       ['an empty name', { display_name: '' }],
       ['a name with surrounding spaces', { display_name: ' Ada' }],
       ['a missing name', { display_name: null }],
-      ['an uppercase color', { color: '#3A7BD5' }],
-      ['a short color', { color: '#abc' }],
-      ['a color name', { color: 'tomato' }],
+      ['a hex color instead of a palette token', { color: '#3a7bd5' }],
+      ['an uppercase color token', { color: 'Lake' }],
+      ['an empty color', { color: '' }],
       ['an absolute avatar path', { avatar_path: '/etc/passwd' }],
       ['an avatar path that climbs out of DATA_DIR', { avatar_path: 'avatars/../../hearth.db' }],
       ['an empty avatar path', { avatar_path: '' }],

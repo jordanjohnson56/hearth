@@ -59,3 +59,7 @@ person has no photo avatar. Avoid: emoji, glyph.
 
 **Avatar**: how a person is drawn: their photo if one was uploaded, else their
 icon, else a colored initial.
+
+**Person color**: a palette token such as `ember` or `lake`
+(`src/core/personColor.ts`), never a color value. Each theme maps the token to
+a value with at least 4.5:1 contrast on its surfaces. Avoid: hex color.

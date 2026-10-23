@@ -18,6 +18,17 @@
   --color-accent: #a8481f;
   --color-on-accent: #fffdf9;
   --color-focus: #1f5fbf;
+
+  /* Person palette (src/core/personColor.ts). 4.5:1 on every surface. */
+  --person-ember: #b23c0a;
+  --person-lake: #1d4ed8;
+  --person-moss: #15723a;
+  --person-plum: #7e22ce;
+  --person-berry: #be123c;
+  --person-teal: #0f6b64;
+  --person-sun: #8a5a0b;
+  --person-slate: #475569;
+  --person-fuchsia: #a21caf;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -32,6 +43,16 @@
     --color-accent: #ff9466;
     --color-on-accent: #11151c;
     --color-focus: #7cb4ff;
+
+    --person-ember: #fb923c;
+    --person-lake: #60a5fa;
+    --person-moss: #4ade80;
+    --person-plum: #c084fc;
+    --person-berry: #fb7185;
+    --person-teal: #2dd4bf;
+    --person-sun: #facc15;
+    --person-slate: #cbd5e1;
+    --person-fuchsia: #e879f9;
   }
 }
 
@@ -46,4 +67,14 @@
   --color-accent: #ff9466;
   --color-on-accent: #11151c;
   --color-focus: #7cb4ff;
+
+  --person-ember: #fb923c;
+  --person-lake: #60a5fa;
+  --person-moss: #4ade80;
+  --person-plum: #c084fc;
+  --person-berry: #fb7185;
+  --person-teal: #2dd4bf;
+  --person-sun: #facc15;
+  --person-slate: #cbd5e1;
+  --person-fuchsia: #e879f9;
 }

@@ -1,12 +1,14 @@
 // Repository for the person table: the only module that holds SQL about
 // people. Display names are unique ignoring case (person_display_name index).
 import type { Database } from 'better-sqlite3';
+import { isPersonColor } from '../../core/personColor.js';
+import type { PersonColor } from '../../core/personColor.js';
 
 export interface Person {
   id: number;
   displayName: string;
-  /** Lowercase `#rrggbb`. */
-  color: string;
+  /** A palette token; the client theme maps it to a color per theme. */
+  color: PersonColor;
   /** Relative to DATA_DIR, or null when the person has no avatar. */
   avatarPath: string | null;
   /** A monochrome icon token (kebab-case), or null when none is chosen. */
@@ -15,7 +17,7 @@ export interface Person {
 
 export interface PersonInput {
   displayName: string;
-  color: string;
+  color: PersonColor;
 }
 
 interface PersonRow {
@@ -32,7 +34,9 @@ function toPerson(row: PersonRow): Person {
   return {
     id: row.id,
     displayName: row.display_name,
-    color: row.color,
+    // A token removed from the palette after it was stored is a code bug,
+    // not bad input, so it is not checked again on the way out.
+    color: row.color as PersonColor,
     avatarPath: row.avatar_path,
     icon: row.icon,
   };
@@ -50,6 +54,9 @@ export function listPeople(db: Database): Person[] {
  * avatar and icon of an existing person are kept.
  */
 export function upsertPersonByDisplayName(db: Database, input: PersonInput): Person {
+  if (!isPersonColor(input.color)) {
+    throw new RangeError(`not a person color: ${JSON.stringify(input.color)}`);
+  }
   const row = db
     .prepare(
       `INSERT INTO person (display_name, color) VALUES (?, ?)

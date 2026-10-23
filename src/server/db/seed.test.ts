@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { isPersonColor } from '../../core/personColor.js';
 import { serverFeatureList } from '../../features/registry.server.js';
 import { tempDatabase } from '../../../test/helpers/sqlite.js';
 import { testConfig } from '../../../test/helpers/app.js';
@@ -25,7 +26,7 @@ describe('seedFamily', () => {
     const people = listPeople(db);
     expect(people.map((p) => p.displayName)).toEqual(['Ada', 'Linus', 'Marie', 'Grace']);
     expect(new Set(people.map((p) => p.color)).size).toBe(4);
-    expect(people.every((p) => /^#[0-9a-f]{6}$/.test(p.color))).toBe(true);
+    expect(people.every((p) => isPersonColor(p.color))).toBe(true);
     expect(people.map((p) => p.avatarPath)).toEqual([null, null, null, null]);
   });
 
@@ -42,7 +43,7 @@ describe('seedFamily', () => {
 
   it('matches existing people by display name ignoring case, and restores the seed spelling and color', () => {
     const db = migratedDatabase();
-    const changed = upsertPersonByDisplayName(db, { displayName: 'ada', color: '#000000' });
+    const changed = upsertPersonByDisplayName(db, { displayName: 'ada', color: 'slate' });
 
     seedFamily(db);
 
@@ -50,7 +51,7 @@ describe('seedFamily', () => {
     expect(people).toHaveLength(4);
     const ada = people.find((p) => p.id === changed.id);
     expect(ada?.displayName).toBe('Ada');
-    expect(ada?.color).not.toBe('#000000');
+    expect(ada?.color).not.toBe('slate');
   });
 });
 

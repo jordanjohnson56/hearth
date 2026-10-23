@@ -22,9 +22,11 @@ export const coreMigrations: readonly Migration[] = [
         id           INTEGER PRIMARY KEY,
         display_name TEXT NOT NULL
                      CHECK (display_name <> '' AND display_name = trim(display_name)),
-        -- Lowercase #rrggbb, one canonical spelling per color.
+        -- A palette token (src/core/personColor.ts), not a color value, so
+        -- each theme decides how it is drawn. Which tokens exist is checked
+        -- in code; adding one needs no migration.
         color        TEXT NOT NULL
-                     CHECK (color GLOB '#[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]'),
+                     CHECK (color GLOB '[a-z]*' AND NOT color GLOB '*[^a-z]*'),
         -- Relative to DATA_DIR; never absolute, never climbing out of it.
         avatar_path  TEXT
                      CHECK (avatar_path IS NULL OR (
