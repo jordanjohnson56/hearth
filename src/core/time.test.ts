@@ -2,10 +2,19 @@ import { describe, expect, it } from 'vitest';
 import {
   InvalidInstantError,
   InvalidTimeZoneError,
+  addDays,
+  addMonths,
+  daysBetween,
+  endOfMonth,
   isValidZone,
   localDate,
+  localDateRangeToInstants,
+  parseLocalDate,
+  startOfMonth,
+  wallTimeToInstant,
   weekStart,
 } from './time.js';
+import type { LocalDate } from './time.js';
 
 const CHICAGO = 'America/Chicago';
 const HOUR_MS = 3_600_000;
@@ -147,5 +156,76 @@ describe('malformed input', () => {
   it('errors are RangeErrors, so generic handlers still classify them', () => {
     expect(() => localDate(new Date(NaN), CHICAGO)).toThrow(RangeError);
     expect(() => localDate(anInstant, 'Mars/Base')).toThrow(RangeError);
+  });
+});
+
+describe('local date arithmetic', () => {
+  it('parses only the YYYY-MM-DD shape with a real date', () => {
+    expect(parseLocalDate('2026-02-28')).toBe('2026-02-28');
+    for (const bad of ['2026-02-30', '2026-13-01', '2026-2-3', '20260203', '2026-02-03T10:00', '']) {
+      expect(parseLocalDate(bad)).toBeUndefined();
+    }
+  });
+
+  it('adds whole months, clamping the day to the shorter month', () => {
+    expect(addMonths('2026-01-31' as LocalDate, 1)).toBe('2026-02-28');
+    expect(addMonths('2026-01-15' as LocalDate, -3)).toBe('2025-10-15');
+    expect(addMonths('2026-10-23' as LocalDate, 12)).toBe('2027-10-23');
+  });
+
+  it('adds days across month and year ends', () => {
+    expect(addDays('2026-12-31' as LocalDate, 1)).toBe('2027-01-01');
+    expect(addDays('2026-03-01' as LocalDate, -1)).toBe('2026-02-28');
+  });
+
+  it('finds the first and last day of a month, including leap February', () => {
+    expect(startOfMonth('2026-10-23' as LocalDate)).toBe('2026-10-01');
+    expect(endOfMonth('2026-10-23' as LocalDate)).toBe('2026-10-31');
+    expect(endOfMonth('2028-02-10' as LocalDate)).toBe('2028-02-29');
+  });
+
+  it('counts the days from one date to another, negative when backwards', () => {
+    expect(daysBetween('2026-01-01' as LocalDate, '2026-04-03' as LocalDate)).toBe(92);
+    expect(daysBetween('2026-04-03' as LocalDate, '2026-01-01' as LocalDate)).toBe(-92);
+    expect(daysBetween('2026-01-01' as LocalDate, '2026-01-01' as LocalDate)).toBe(0);
+  });
+});
+
+describe('wallTimeToInstant', () => {
+  it('turns a wall time in the zone into the instant, with the zone offset of that date', () => {
+    // 09:00 CST (UTC-6) in January; 09:00 CDT (UTC-5) in July.
+    expect(wallTimeToInstant(2026, 1, 15, 9, 0, 0, CHICAGO)).toEqual(new Date('2026-01-15T15:00:00Z'));
+    expect(wallTimeToInstant(2026, 7, 15, 9, 0, 0, CHICAGO)).toEqual(new Date('2026-07-15T14:00:00Z'));
+  });
+
+  it('moves a wall time in the spring-forward gap to the later side', () => {
+    // 02:30 on 2026-03-08 does not exist in Chicago; it reads as 03:30 CDT.
+    expect(wallTimeToInstant(2026, 3, 8, 2, 30, 0, CHICAGO)).toEqual(new Date('2026-03-08T08:30:00Z'));
+  });
+
+  it('takes the first of the two fall-back wall times', () => {
+    // 01:30 on 2026-11-01 happens twice; the CDT one (06:30Z) comes first.
+    expect(wallTimeToInstant(2026, 11, 1, 1, 30, 0, CHICAGO)).toEqual(new Date('2026-11-01T06:30:00Z'));
+  });
+
+  it('rejects a bad zone the way localDate does', () => {
+    expect(() => wallTimeToInstant(2026, 1, 1, 0, 0, 0, 'Mars/Base')).toThrow(InvalidTimeZoneError);
+  });
+});
+
+describe('localDateRangeToInstants', () => {
+  it('spans from the first instant of `from` to the first instant of the day after `to`', () => {
+    expect(
+      localDateRangeToInstants('2026-01-14' as LocalDate, '2026-01-15' as LocalDate, CHICAGO),
+    ).toEqual({ start: new Date('2026-01-14T06:00:00Z'), end: new Date('2026-01-16T06:00:00Z') });
+  });
+
+  it('is 23 hours long on the spring-forward day', () => {
+    const { start, end } = localDateRangeToInstants(
+      '2026-03-08' as LocalDate,
+      '2026-03-08' as LocalDate,
+      CHICAGO,
+    );
+    expect(end.getTime() - start.getTime()).toBe(23 * HOUR_MS);
   });
 });
