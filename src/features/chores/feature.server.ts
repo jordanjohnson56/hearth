@@ -1,8 +1,13 @@
 // The chores feature's server half: its tables and its router (mounted at
-// /api/chores). M2.1 serves the chore definitions; the board, claims and
-// corrections build on the same tables.
+// /api/chores): the chore definitions (admin), the public board, claims and
+// the wall's undo. Corrections (M2.6) build on the same tables.
 //
 // Contract (status codes):
+//   GET   /board                    200 board (public)
+//   POST  /:id/claims               201 completion; 400 bad or unknown person;
+//                                   404 unknown chore; 409 not claimable (public)
+//   POST  /completions/:id/undo     204 within 15 s of the claim; 409 after;
+//                                   404 unknown or already voided (public)
 //   GET   /definitions      200 { chores } (archived included); 401 no bearer
 //   POST  /definitions      201 chore; 400 bad field; 409 duplicate name; 401
 //   PATCH /definitions/:id  200 chore; 400; 404; 409; 401
@@ -18,7 +23,10 @@ import { DuplicateChoreNameError, insertChore, listChores, updateChore } from '.
 import type { Chore, ChorePatch } from './choreRepository.js';
 import { parseRule } from './rule.js';
 import type { RecurrenceRule } from './rule.js';
-import type { ChoreWire, DefinitionsResponse } from './types.js';
+import { claimChore, readBoard, undoCompletion } from './board.js';
+import type { ClaimResult } from './board.js';
+import type { Completion } from './completion.js';
+import type { BoardResponse, ChoreWire, CompletionWire, DefinitionsResponse } from './types.js';
 
 export const MIN_POINTS = 1;
 export const MAX_POINTS = 1000;
@@ -78,6 +86,29 @@ function createRouter(ctx: FeatureContext): Router {
   const router = Router();
   const today = (): LocalDate => localDate(ctx.now(), ctx.config.zone);
 
+  router.get('/board', (_req, res) => {
+    const body: BoardResponse = readBoard(ctx.db, ctx.now(), ctx.config.zone);
+    res.json(body);
+  });
+
+  router.post('/:id/claims', jsonBody, (req, res) => {
+    const choreId = idOf(req);
+    const personId = personIdOf(bodyOf(req.body)['personId']);
+    const result = claimChore(ctx.db, choreId, personId, ctx.now(), ctx.config.zone);
+    if (result.kind !== 'claimed') throw claimRefusal(result);
+    ctx.broadcaster.publish('chores');
+    res.status(201).json(toCompletionWire(result.completion));
+  });
+
+  router.post('/completions/:id/undo', (req, res) => {
+    const id = completionIdOf(req);
+    const result = undoCompletion(ctx.db, id, ctx.now());
+    if (result.kind === 'no-completion') throw noSuchCompletion();
+    if (result.kind === 'too-late') throw new HttpError(409, 'Too late to undo. An admin can void it.');
+    ctx.broadcaster.publish('chores');
+    res.status(204).end();
+  });
+
   router.get('/definitions', ctx.requireAdmin, (_req, res) => {
     const body: DefinitionsResponse = { chores: listChores(ctx.db).map(toChoreWire) };
     res.json(body);
@@ -125,13 +156,49 @@ export const choresServer = {
 // Validation. Every message is written for the admin form.
 
 function idOf(req: Request): number {
-  const raw = req.params['id'];
-  if (typeof raw !== 'string' || !/^[1-9]\d*$/.test(raw)) throw notFound();
-  return Number(raw);
+  const id = positiveId(req.params['id']);
+  if (id === undefined) throw notFound();
+  return id;
+}
+
+function completionIdOf(req: Request): number {
+  const id = positiveId(req.params['id']);
+  if (id === undefined) throw noSuchCompletion();
+  return id;
+}
+
+function positiveId(raw: unknown): number | undefined {
+  return typeof raw === 'string' && /^[1-9]\d{0,15}$/.test(raw) ? Number(raw) : undefined;
 }
 
 function notFound(): HttpError {
   return new HttpError(404, 'No such chore');
+}
+
+function noSuchCompletion(): HttpError {
+  return new HttpError(404, 'No such completion');
+}
+
+function personIdOf(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 1) {
+    throw new HttpError(400, 'Choose who did it');
+  }
+  return value;
+}
+
+function claimRefusal(result: Exclude<ClaimResult, { kind: 'claimed' }>): HttpError {
+  switch (result.kind) {
+    case 'no-chore':
+      return notFound();
+    case 'no-person':
+      return new HttpError(400, 'No such person');
+    case 'archived':
+      return new HttpError(409, 'That chore is archived');
+    case 'not-waiting':
+      return new HttpError(409, 'That chore is not waiting');
+    case 'claimed-today':
+      return new HttpError(409, 'That chore was already claimed today');
+  }
 }
 
 function nameOf(value: unknown): string {
@@ -170,6 +237,16 @@ function withDomainErrors<T>(run: () => T): T {
     if (err instanceof DuplicateChoreNameError) throw new HttpError(409, err.message);
     throw err;
   }
+}
+
+function toCompletionWire(completion: Completion): CompletionWire {
+  return {
+    id: completion.id,
+    choreId: completion.choreId,
+    personId: completion.personId,
+    completedAt: completion.completedAt.getTime(),
+    pointsAwarded: completion.pointsAwarded,
+  };
 }
 
 function toChoreWire(chore: Chore): ChoreWire {

@@ -1,13 +1,9 @@
-import type { Database } from 'better-sqlite3';
-import type { Express } from 'express';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
-import { setPinAndUnlock } from '../../../test/helpers/admin.js';
+import { featureHarness } from '../../../test/helpers/featureHarness.js';
+import type { FeatureHarness } from '../../../test/helpers/featureHarness.js';
 import { testAppOptions } from '../../../test/helpers/app.js';
-import { captureLogger } from '../../../test/helpers/logger.js';
-import { createApp } from '../../server/app.js';
 import type { AppOptions } from '../../server/app.js';
-import { createBroadcaster } from '../../server/broadcaster.js';
 import { appliedMigrations, runMigrations } from '../../server/db/migrate.js';
 import { migrationSets } from '../../server/db/schema.js';
 import { choresServer } from './feature.server.js';
@@ -18,44 +14,11 @@ const NOW = new Date('2026-10-23T17:00:00Z');
 /** Short enough that the admin session (10 minutes idle) stays live. */
 const MINUTE_MS = 60_000;
 
-interface Harness {
-  app: Express;
-  db: Database;
-  token: string;
-  hints: string[];
-  lines: () => Record<string, unknown>[];
-  text: () => string;
-  /** Moves the injected clock forward. */
-  advance: (ms: number) => void;
-}
+type Harness = FeatureHarness;
 
 /** An app with PIN 1234 set and unlocked, the chores feature, an injected clock and counted hints. */
-async function harness(overrides: Partial<AppOptions> = {}): Promise<Harness> {
-  const { logger, lines, text } = captureLogger();
-  const broadcaster = createBroadcaster(logger);
-  const hints: string[] = [];
-  broadcaster.subscribe((feature) => hints.push(feature));
-  let at = NOW.getTime();
-  const options = testAppOptions({
-    features: [choresServer],
-    logger,
-    broadcaster,
-    now: () => new Date(at),
-    ...overrides,
-  });
-  const { app } = createApp(options);
-  const token = await setPinAndUnlock(app);
-  return {
-    app,
-    db: options.db,
-    token,
-    hints,
-    lines,
-    text,
-    advance: (ms) => {
-      at += ms;
-    },
-  };
+function harness(overrides: Partial<AppOptions> = {}): Promise<Harness> {
+  return featureHarness([choresServer], NOW, overrides);
 }
 
 const FEED_THE_DOG = { name: 'Feed the dog', rule: { kind: 'daily' }, points: 2, startDate: '2026-10-01' };
