@@ -233,6 +233,8 @@ function claimRefusal(result: Exclude<ClaimResult, { kind: 'claimed' }>): HttpEr
       return new HttpError(409, 'That chore is not waiting');
     case 'claimed-today':
       return new HttpError(409, 'That chore was already claimed today');
+    case 'not-started':
+      return new HttpError(409, 'That chore has not started yet');
   }
 }
 

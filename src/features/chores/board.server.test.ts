@@ -309,6 +309,23 @@ describe('POST /api/chores/:id/claims', () => {
     expect(pointsOf(await board(h))).toEqual({ [ADA]: 0, [LINUS]: 5, [MARIE]: 5, [GRACE]: 0 });
   });
 
+  it('keeps an anytime chore off the board and refuses it with 409 until its start date', async () => {
+    const h = await harness();
+    await addChore(h, 'Wash the car', { kind: 'whenever' }, 5, '2026-10-24');
+    h.hints.length = 0;
+
+    const early = await claim(h, 1, { personId: ADA });
+    const before = await board(h);
+    h.advance(12 * HOUR_MS); // Saturday 00:00 CDT
+
+    expect(early.status).toBe(409);
+    expect(early.body).toMatchObject({ message: 'That chore has not started yet' });
+    expect(h.hints).toEqual([]);
+    expect([before.anytime, before.waiting, before.upcoming]).toEqual([[], [], []]);
+    expect((await board(h)).anytime).toEqual([{ id: 1, name: 'Wash the car', points: 5, claimedToday: false }]);
+    expect((await claim(h, 1, { personId: ADA })).status).toBe(201);
+  });
+
   it.each([
     ['an id no chore has', 99],
     ['an id that is not a number', 'abc'],

@@ -16,7 +16,9 @@ export type ChoreStatus =
   /** A scheduled chore that is not waiting, with its next due date after today. */
   | { kind: 'upcoming'; nextDue: LocalDate }
   /** An anytime chore (rule whenever): claimable once per local day. */
-  | { kind: 'anytime'; claimedToday: boolean };
+  | { kind: 'anytime'; claimedToday: boolean }
+  /** An anytime chore before its start date: on no board section, not claimable. */
+  | { kind: 'not-started' };
 
 export type WaitingStatus = Extract<ChoreStatus, { kind: 'overdue' | 'due-today' }>;
 
@@ -40,7 +42,10 @@ export function choreStatus(
   }
   const lastDate = last === undefined ? undefined : localDate(last, zone);
 
-  if (chore.rule.kind === 'whenever') return { kind: 'anytime', claimedToday: lastDate === today };
+  if (chore.rule.kind === 'whenever') {
+    if (chore.startDate > today) return { kind: 'not-started' };
+    return { kind: 'anytime', claimedToday: lastDate === today };
+  }
 
   const from = lastDate === undefined ? chore.startDate : addDays(lastDate, 1);
   const earliest = nextDueDate(chore.rule, chore.startDate, from);

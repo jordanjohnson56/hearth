@@ -54,6 +54,8 @@ export function readBoard(db: Database, now: Date, zone: string): BoardResponse 
       case 'upcoming':
         upcoming.push({ ...summary(chore), nextDue: status.nextDue });
         break;
+      case 'not-started':
+        break;
     }
   }
   waiting.sort((a, b) => comparePool({ ...a.chore, status: a.status }, { ...b.chore, status: b.status }));
@@ -93,7 +95,9 @@ export type ClaimResult =
   /** A scheduled chore that is not waiting. */
   | { kind: 'not-waiting' }
   /** An anytime chore already claimed today. */
-  | { kind: 'claimed-today' };
+  | { kind: 'claimed-today' }
+  /** An anytime chore before its start date. */
+  | { kind: 'not-started' };
 
 /** Records that `personId` did chore `choreId` at `now`, worth the chore's points now. */
 export function claimChore(db: Database, choreId: number, personId: number, now: Date, zone: string): ClaimResult {
@@ -103,7 +107,10 @@ export function claimChore(db: Database, choreId: number, personId: number, now:
     if (getPerson(db, personId) === undefined) return { kind: 'no-person' };
     if (chore.archivedAt !== null) return { kind: 'archived' };
     const status = statusOf(chore, latestCountedCompletion(db, chore.id), now, zone);
-    if (!isClaimable(status)) return { kind: status.kind === 'anytime' ? 'claimed-today' : 'not-waiting' };
+    if (!isClaimable(status)) {
+      if (status.kind === 'anytime') return { kind: 'claimed-today' };
+      return { kind: status.kind === 'not-started' ? 'not-started' : 'not-waiting' };
+    }
     const completion = insertCompletion(db, { choreId, personId, completedAt: now, pointsAwarded: chore.points });
     return { kind: 'claimed', completion };
   })();
