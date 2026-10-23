@@ -61,4 +61,10 @@ export interface ClientFeature {
   name: string;
   tile?: { component: FC; size: 'sm' | 'wide' };
   page?: { component: FC; icon: string };
+  /**
+   * The feature's admin panel, rendered by the core /admin route below the
+   * core panel once unlocked. It calls bearer routes through the admin
+   * session (src/client/admin/session.tsx).
+   */
+  admin?: { component: FC };
 }

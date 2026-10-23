@@ -3,9 +3,10 @@ import type { MouseEvent } from 'react';
 import { clientFeatureList } from '../features/registry.client.js';
 import type { ClientFeature } from '../features/types.js';
 
-/** The view a path shows. Home is `/`; each feature page is `/<id>`. */
+/** The view a path shows. Home is `/`, admin is `/admin`, each feature page is `/<id>`. */
 export type Route =
   | { kind: 'home' }
+  | { kind: 'admin' }
   | { kind: 'feature'; feature: ClientFeature }
   | { kind: 'not-found' };
 
@@ -15,6 +16,7 @@ function routeFor(pathname: string): Route {
   // Only the first segment picks the view; deeper paths belong to the page.
   const [first] = pathname.split('/').filter(Boolean);
   if (first === undefined) return { kind: 'home' };
+  if (first === 'admin') return { kind: 'admin' };
   const feature = clientFeatureList.find((candidate) => candidate.id === first);
   return feature ? { kind: 'feature', feature } : { kind: 'not-found' };
 }

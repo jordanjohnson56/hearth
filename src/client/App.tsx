@@ -2,6 +2,8 @@ import type { ReactNode } from 'react';
 import { formatClock } from '../core/clock.js';
 import { clientFeatureList } from '../features/registry.client.js';
 import type { ClientFeature } from '../features/types.js';
+import { AdminPage } from './admin/AdminPage.js';
+import { AdminSessionProvider } from './admin/session.js';
 import { useLiveUpdates } from './liveUpdates.js';
 import { followLink, useRoute } from './router.js';
 import type { Route } from './router.js';
@@ -20,18 +22,22 @@ export function App() {
   useLiveUpdates();
   const { path, route } = useRoute();
 
+  // The admin session sits above the router so an unlocked admin stays
+  // unlocked across in-app navigation; a reload still drops it.
   return (
-    <div className="shell">
-      <Header />
-      <main className="shell-main">
-        <View route={route} />
-      </main>
-      <BottomNav path={path} />
-    </div>
+    <AdminSessionProvider>
+      <div className="shell">
+        <Header onAdmin={route.kind === 'admin'} />
+        <main className="shell-main">
+          <View route={route} />
+        </main>
+        <BottomNav path={path} />
+      </div>
+    </AdminSessionProvider>
   );
 }
 
-function Header() {
+function Header({ onAdmin }: { onAdmin: boolean }) {
   const now = useNow();
   const { time, date } = formatClock(now, zone);
 
@@ -43,10 +49,14 @@ function Header() {
         </time>
         <span className="clock-part">{date}</span>
       </p>
-      {/* Does nothing in M0; the PIN flow comes later. */}
-      <button type="button" className="admin-button">
+      <a
+        className="admin-button"
+        href="/admin"
+        onClick={followLink}
+        aria-current={onAdmin ? 'page' : undefined}
+      >
         Admin
-      </button>
+      </a>
     </header>
   );
 }
@@ -55,6 +65,8 @@ function View({ route }: { route: Route }) {
   switch (route.kind) {
     case 'home':
       return <Home />;
+    case 'admin':
+      return <AdminPage />;
     case 'feature':
       return <FeaturePage feature={route.feature} />;
     case 'not-found':
