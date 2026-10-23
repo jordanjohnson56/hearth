@@ -174,6 +174,15 @@ successful fetch is more than an hour old, the Day at a glance tile adds a
 line such as "Calendar updated 3 hours ago". The tile and the Calendar page
 update on their own when a fetch changes anything.
 
+### People
+
+Under **People**, the admin panel lists everyone, each with a colored
+initial as their avatar. **Add a person** takes a name and a color from the
+palette (the first color nobody has is preselected). **Edit** renames or
+recolors someone in place. Names are unique ignoring case, so a second
+"ada" is refused. There is no hiding or removal. The wall picks up a change
+within five minutes.
+
 ### Theme times
 
 Under **Theme**, **Light from** and **Dark from** are the two times of day
