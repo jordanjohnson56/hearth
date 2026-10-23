@@ -117,6 +117,11 @@ export function daysBetween(from: LocalDate, to: LocalDate): number {
   return toPlain(from).until(toPlain(to), { largestUnit: 'days' }).days;
 }
 
+/** The ISO weekday of `date`: 1 for Monday through 7 for Sunday. */
+export function weekdayOf(date: LocalDate): number {
+  return toPlain(date).dayOfWeek;
+}
+
 /**
  * The instant at which a wall-clock time happens in `zone`. A time in a DST
  * gap (02:30 on spring-forward day) resolves to the later side; a repeated

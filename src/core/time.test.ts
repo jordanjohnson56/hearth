@@ -13,6 +13,7 @@ import {
   startOfMonth,
   wallTimeToInstant,
   weekStart,
+  weekdayOf,
 } from './time.js';
 import type { LocalDate } from './time.js';
 
@@ -188,6 +189,15 @@ describe('local date arithmetic', () => {
     expect(daysBetween('2026-01-01' as LocalDate, '2026-04-03' as LocalDate)).toBe(92);
     expect(daysBetween('2026-04-03' as LocalDate, '2026-01-01' as LocalDate)).toBe(-92);
     expect(daysBetween('2026-01-01' as LocalDate, '2026-01-01' as LocalDate)).toBe(0);
+  });
+
+  it('names the ISO weekday of a date, Monday 1 through Sunday 7', () => {
+    // 2026-10-19 is a Monday; 2026-03-08 and 2026-11-01 are the DST Sundays.
+    expect(weekdayOf('2026-10-19' as LocalDate)).toBe(1);
+    expect(weekdayOf('2026-10-23' as LocalDate)).toBe(5);
+    expect(weekdayOf('2026-03-08' as LocalDate)).toBe(7);
+    expect(weekdayOf('2026-11-01' as LocalDate)).toBe(7);
+    expect(weekdayOf('2028-02-29' as LocalDate)).toBe(2);
   });
 });
 

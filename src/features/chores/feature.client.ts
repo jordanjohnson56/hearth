@@ -1,7 +1,9 @@
 import type { ClientFeature } from '../types.js';
+import { ChoresAdmin } from './admin/ChoresAdmin.client.js';
 
-// Stub until M2: no tile or page yet.
+// No tile or page yet (M2.3): the admin panel defines the chores.
 export const choresClient = {
   id: 'chores',
   name: 'Chores',
+  admin: { component: ChoresAdmin },
 } satisfies ClientFeature;
