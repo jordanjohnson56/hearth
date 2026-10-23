@@ -1,5 +1,7 @@
 // Fetches a feed over the injected fetch with the bounds the spec sets: a
-// timeout, a body cap, at most two redirects, https on every hop. Calls
+// timeout, a body cap, at most two redirects, https on every hop, every
+// hop on the host the address names (a hop elsewhere is a sign-in page,
+// and the secret must not be presented to another site). Calls
 // SecretUrl.reveal() for the outbound request; the only other callers are
 // the source repository's two secret-table writes (test/revealBoundary.test.ts
 // pins the call sites). A failure is a classification and nothing else: the
@@ -38,10 +40,11 @@ export async function fetchFeed(
       const res = await fetch(target, { redirect: 'manual', signal });
       if (REDIRECT_STATUSES.has(res.status)) {
         const next = redirectTarget(res, target);
+        await res.body?.cancel();
         // A third redirect, a missing Location or a hop off https is refused
         // and reported as the redirect status itself.
         if (hop >= maxRedirects || next === undefined) return { ok: false, failure: httpFailure(res.status) };
-        await res.body?.cancel();
+        if (!sameHost(target, next)) return { ok: false, failure: 'redirected-away' };
         target = next;
         continue;
       }
@@ -71,6 +74,11 @@ function redirectTarget(res: Response, from: string): string | undefined {
     return undefined;
   }
   return next.protocol === 'https:' ? next.href : undefined;
+}
+
+/** Whether `next` stays on the host `from` named; the URL parser already lowercases hosts. */
+function sameHost(from: string, next: string): boolean {
+  return new URL(from).host === new URL(next).host;
 }
 
 /** The body as text, or undefined once it has grown past `maxBytes`. */

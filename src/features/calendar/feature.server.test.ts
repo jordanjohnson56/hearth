@@ -578,6 +578,26 @@ describe('redirects', () => {
     expect(res.body).toMatchObject({ lastError: 'http 302' });
     expect(h.calls).toEqual([ADA_URL]);
   });
+
+  it('stops at a redirect to another site, keeps the row with redirected-away and leaves other sources alone', async () => {
+    const h = await harness({
+      [ADA_URL]: () => feedResponse(icalFixture('single-events')),
+      [MARIE_URL]: redirect('https://accounts.example/signin'),
+    });
+    await addSource(h);
+
+    const res = await addSource(h, { label: 'Marie', color: 'lake', url: MARIE_URL });
+
+    expect(res.status).toBe(201);
+    expect(res.body).toMatchObject({ label: 'Marie', lastError: 'redirected-away', lastSuccessAt: null });
+    expect(h.calls).toEqual([ADA_URL, MARIE_URL]);
+    expect(await listSources(h)).toMatchObject([
+      { label: 'Ada', lastError: null },
+      { label: 'Marie', lastError: 'redirected-away' },
+    ]);
+    const events = await eventsBetween(h, '2026-10-24', '2026-10-25');
+    expect((events.body as { events: unknown[] }).events).toHaveLength(2);
+  });
 });
 
 /** A harness whose broadcaster's hints are counted, with the poll job to run by hand. */

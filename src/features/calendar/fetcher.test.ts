@@ -27,3 +27,43 @@ describe('fetchFeed limits', () => {
     expect(calls).toEqual([url.reveal(), 'https://cal.example/one']);
   });
 });
+
+describe('fetchFeed redirects', () => {
+  const hop = (to: string) => () => new Response(null, { status: 302, headers: { location: to } });
+
+  it('follows a same-host redirect, whatever the case of the host', async () => {
+    const { fetch, calls } = fakeFetch({
+      [url.reveal()]: hop('https://CAL.example/one'),
+      'https://cal.example/one': () => feedResponse(icalFixture('empty')),
+    });
+
+    await expect(fetchFeed(fetch, url)).resolves.toEqual({ ok: true, text: icalFixture('empty') });
+    expect(calls).toEqual([url.reveal(), 'https://cal.example/one']);
+  });
+
+  it('stops at a redirect to another host and reports redirected-away', async () => {
+    const { fetch, calls } = fakeFetch({
+      [url.reveal()]: hop('https://accounts.example/signin?continue=feed'),
+      'https://accounts.example/signin?continue=feed': () => feedResponse(icalFixture('empty')),
+    });
+
+    await expect(fetchFeed(fetch, url)).resolves.toEqual({ ok: false, failure: 'redirected-away' });
+    expect(calls).toEqual([url.reveal()]);
+  });
+
+  it('reports redirected-away for a second hop that leaves the host', async () => {
+    const { fetch, calls } = fakeFetch({
+      [url.reveal()]: hop('https://cal.example/one'),
+      'https://cal.example/one': hop('https://accounts.example/signin'),
+    });
+
+    await expect(fetchFeed(fetch, url)).resolves.toEqual({ ok: false, failure: 'redirected-away' });
+    expect(calls).toEqual([url.reveal(), 'https://cal.example/one']);
+  });
+
+  it('still reports the status for a hop off https, even on the same host', async () => {
+    const { fetch } = fakeFetch({ [url.reveal()]: hop('http://cal.example/one') });
+
+    await expect(fetchFeed(fetch, url)).resolves.toEqual({ ok: false, failure: 'http 302' });
+  });
+});

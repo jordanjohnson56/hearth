@@ -358,6 +358,8 @@ const FAILURE_TEXT: Record<Exclude<FetchFailure, `http ${number}`>, string> = {
   'not-ics': 'Not a calendar feed',
   'too-large': 'Feed is too large',
   network: 'Could not connect',
+  'redirected-away':
+    'The address sends Hearth to another site, usually a sign-in page. Paste the "Secret address in iCal format" instead.',
 };
 
 /** The classification as a short line for the row. */

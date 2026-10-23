@@ -156,6 +156,10 @@ failed first fetch keeps the row, so you can fix the cause and tap
     names the **Secret address in iCal format**.)
   - `too-large`, shown as "Feed is too large": over 5 MB.
   - `network`, shown as "Could not connect".
+  - `redirected-away`, shown as "The address sends Hearth to another site,
+    usually a sign-in page": the address redirected to a different host,
+    which Hearth does not follow. Paste the **Secret address in iCal
+    format** with **Edit**.
 - **Skipped**: "N events could not be read" appears when the last fetch
   contained events Hearth could not parse. The rest are shown as usual.
 

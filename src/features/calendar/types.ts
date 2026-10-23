@@ -29,8 +29,11 @@ export type ParsedEvent = {
 /** A stored occurrence: a ParsedEvent that belongs to one source. */
 export type CalendarEvent = ParsedEvent & { sourceId: number };
 
-/** A fetch failure, as stored on the source row. */
-export type FetchFailure = 'timeout' | `http ${number}` | 'not-ics' | 'too-large' | 'network';
+/**
+ * A fetch failure, as stored on the source row. `redirected-away`: the
+ * address answered with a redirect to another host, usually a sign-in page.
+ */
+export type FetchFailure = 'timeout' | `http ${number}` | 'not-ics' | 'too-large' | 'network' | 'redirected-away';
 
 // Wire shapes (docs/adr/0004): instants are epoch-millisecond numbers,
 // local dates are YYYY-MM-DD strings.
