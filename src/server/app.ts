@@ -1,6 +1,8 @@
 import { STATUS_CODES } from 'node:http';
 import express from 'express';
 import type { ErrorRequestHandler, Express, Response } from 'express';
+import { serverFeatureList } from '../features/registry.server.js';
+import type { ServerFeature } from '../features/types.js';
 import type { Config } from './config.js';
 import type { Logger } from './logger.js';
 
@@ -10,6 +12,8 @@ export interface AppOptions {
   /** Validated bootstrap config; the app never reads process.env. */
   config: Config;
   logger: Logger;
+  /** Features to mount. Defaults to the server registry; tests pass their own. */
+  features?: readonly ServerFeature[];
 }
 
 /** Builds the Hearth HTTP app. Does not listen; the entrypoint does. */
@@ -17,8 +21,11 @@ export function createApp(options: AppOptions): Express {
   const app = express();
   app.disable('x-powered-by');
 
-  // Feature routers mount under /api before this point (M0.2+). Anything
-  // under /api that reached here is unknown: JSON, never the SPA.
+  for (const feature of options.features ?? serverFeatureList) {
+    if (feature.router) app.use(`/api/${feature.id}`, feature.router);
+  }
+
+  // Anything under /api that reached here is unknown: JSON, never the SPA.
   app.use('/api', (_req, res) => {
     sendError(res, 404);
   });
