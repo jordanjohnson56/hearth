@@ -24,6 +24,7 @@ interface Harness {
   token: string;
   calls: string[];
   text: () => string;
+  lines: () => Record<string, unknown>[];
   /** Moves the injected clock forward. */
   advance: (ms: number) => void;
 }
@@ -34,7 +35,7 @@ async function harness(
   overrides: Partial<Parameters<typeof testAppOptions>[0]> = {},
 ): Promise<Harness> {
   const { fetch, calls } = fakeFetch(endpoints);
-  const { logger, text } = captureLogger();
+  const { logger, text, lines } = captureLogger();
   let at = NOW.getTime();
   const app = testApp({ features: [calendarServer], fetch, logger, now: () => new Date(at), ...overrides });
   await request(app).put('/api/admin/pin').send({ pin: '1234' });
@@ -44,6 +45,7 @@ async function harness(
     token: (unlocked.body as { token: string }).token,
     calls,
     text,
+    lines,
     advance: (ms) => {
       at += ms;
     },
@@ -477,6 +479,46 @@ describe('GET /api/calendar/events', () => {
   });
 });
 
+describe('recurring feeds through the events route', () => {
+  it('serves the expanded occurrences of a weekly Chicago event, with the DST shift and one row per instance', async () => {
+    const h = await harness({ [ADA_URL]: () => feedResponse(icalFixture('rrule-weekly-dst')) });
+    await addSource(h);
+
+    const october = await eventsBetween(h, '2026-10-26', '2026-10-26');
+    const november = await eventsBetween(h, '2026-11-02', '2026-11-08');
+
+    expect((october.body as { events: unknown[] }).events).toEqual([
+      expect.objectContaining({
+        uid: 'weekly@cal.example',
+        recurrenceId: '2026-10-26T09:00:00',
+        title: 'Grace weekly swim',
+        kind: 'timed',
+        startAt: Date.parse('2026-10-26T14:00:00Z'),
+        endAt: Date.parse('2026-10-26T15:00:00Z'),
+      }),
+    ]);
+    expect((november.body as { events: unknown[] }).events).toEqual([
+      expect.objectContaining({ recurrenceId: '2026-11-02T09:00:00', startAt: Date.parse('2026-11-02T15:00:00Z') }),
+    ]);
+  });
+
+  it('counts the unreadable VEVENTs on the source, serves the rest, and warns with only the source id and the count', async () => {
+    const h = await harness({ [ADA_URL]: () => feedResponse(icalFixture('cancelled-and-unreadable')) });
+
+    const res = await addSource(h);
+
+    expect(res.body).toMatchObject({ lastError: null, skippedCount: 5 });
+    const events = await eventsBetween(h, '2026-09-01', '2026-09-30');
+    expect((events.body as { events: { uid: string }[] }).events.map((e) => e.uid)).toEqual([
+      'fine@cal.example',
+      'fine@cal.example',
+    ]);
+    const warnings = h.lines().filter((line) => line['level'] === 40);
+    expect(warnings).toEqual([{ level: 40, time: expect.any(String) as string, sourceId: 1, skipped: 5, msg: expect.any(String) as string }]);
+    expect(h.text()).not.toMatch(/Bad frequency|Bad until|Bad exdate|No frequency|Every minute|cal\.example/);
+  });
+});
+
 describe('redirects', () => {
   const HOP1 = 'https://cal.example/r/1';
   const HOP2 = 'https://cal.example/r/2';
@@ -535,13 +577,14 @@ async function pollingHarness(endpoints: Record<string, FakeEndpoint> | FakeEndp
     token: (unlocked.body as { token: string }).token,
     calls,
     text,
+    lines,
     advance: (ms) => {
       at += ms;
     },
   };
   const job = jobs[0];
   if (job === undefined) throw new Error('the calendar feature registers one job');
-  return { ...h, hints, lines, db: options.db, job, poll: () => job.run() };
+  return { ...h, hints, db: options.db, job, poll: () => job.run() };
 }
 
 describe('change hints and the poll job', () => {

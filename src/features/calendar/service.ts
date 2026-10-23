@@ -105,6 +105,8 @@ export function createCalendarService(options: CalendarServiceOptions): Calendar
       { sourceId: id, events: parsed.events.length, skipped: parsed.skipped, changed },
       'calendar fetched',
     );
+    // Only the count: what could not be read may be anything, including the address.
+    if (parsed.skipped > 0) logger.warn({ sourceId: id, skipped: parsed.skipped }, 'calendar events could not be read');
     return changed;
   }
 
