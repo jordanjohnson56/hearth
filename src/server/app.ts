@@ -14,6 +14,7 @@ import { eventsHandler } from './events.js';
 import { BareHttpError, HttpError } from './http.js';
 import { injectZone } from './index-html.js';
 import type { Logger } from './logger.js';
+import { createPeopleRouter } from './people.js';
 import { createSettingsRouter } from './settings.js';
 
 export interface AppOptions {
@@ -66,6 +67,7 @@ export function createApp(options: AppOptions): CreatedApp {
 
   app.use('/api/admin', admin.router);
   app.use('/api/settings', createSettingsRouter({ db: options.db, requireAdmin: admin.requireAdmin }));
+  app.use('/api/people', createPeopleRouter({ db: options.db, requireAdmin: admin.requireAdmin }));
 
   const jobs: FeatureJob[] = [];
   for (const feature of options.features ?? serverFeatureList) {

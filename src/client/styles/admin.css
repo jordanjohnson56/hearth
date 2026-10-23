@@ -149,3 +149,122 @@
 .admin-input-time {
   font-variant-numeric: tabular-nums;
 }
+
+/* Palette picker (PalettePicker.tsx): a person color for a person or a calendar. */
+
+.palette-picker {
+  display: flex;
+  flex: 1 1 100%;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+}
+
+.palette-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.palette-swatch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--touch-min);
+  height: var(--touch-min);
+  cursor: pointer;
+}
+
+.palette-swatch input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.palette-swatch-color {
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  transition: transform 0.1s;
+}
+
+.palette-swatch input:checked + .palette-swatch-color {
+  border-color: var(--color-text);
+  transform: scale(1.15);
+}
+
+.palette-swatch input:focus-visible + .palette-swatch-color {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* People section (PeopleAdmin.tsx) */
+
+.people-admin {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.people-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.people-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-1) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.people-row-view {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--touch-min);
+}
+
+.people-row-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.people-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+
+.people-form .admin-message {
+  flex-basis: 100%;
+  text-align: left;
+}
+
+.people-form-title {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 1rem;
+}
+
+.people-form-actions {
+  display: flex;
+  gap: var(--space-1);
+}

@@ -3,6 +3,7 @@ import type { SubmitEvent } from 'react';
 import { isThemeTimes } from '../../core/theme.js';
 import { clientFeatureList } from '../../features/registry.client.js';
 import { setThemeTimes, useThemeTimes } from '../theme.js';
+import { PeopleAdmin } from './PeopleAdmin.js';
 import { PinPad } from './PinPad.js';
 import { readErrorMessage, useAdminSession } from './session.js';
 
@@ -145,7 +146,7 @@ function Unlock() {
   return <PinPad title="Enter the PIN" message={message} tone="error" busy={busy} onComplete={complete} />;
 }
 
-/** Unlocked: the core panel, then each feature's admin panel. */
+/** Unlocked: the core panel (people, PIN, theme), then each feature's admin panel. */
 function Panel() {
   const session = useAdminSession();
   const panels = clientFeatureList.flatMap((feature) =>
@@ -166,6 +167,12 @@ function Panel() {
           Lock now
         </button>
       </header>
+      <section className="admin-section" aria-labelledby="admin-people">
+        <h2 id="admin-people" className="admin-section-title">
+          People
+        </h2>
+        <PeopleAdmin />
+      </section>
       <section className="admin-section" aria-labelledby="admin-change-pin">
         <h2 id="admin-change-pin" className="admin-section-title">
           Change PIN
