@@ -5,6 +5,7 @@
 // throws instead of dropping the chore.
 import type { Database } from 'better-sqlite3';
 import type { LocalDate } from '../../core/time.js';
+import { withUniqueName } from '../../server/db/uniqueName.js';
 import { parseRule } from './rule.js';
 import type { RecurrenceRule } from './rule.js';
 
@@ -148,16 +149,5 @@ export function updateChore(db: Database, id: number, patch: ChorePatch, now: Da
 }
 
 function withNameCheck<T>(write: () => T): T {
-  try {
-    return write();
-  } catch (err) {
-    if (
-      err instanceof Error &&
-      (err as { code?: unknown }).code === 'SQLITE_CONSTRAINT_UNIQUE' &&
-      err.message.includes('chore.name')
-    ) {
-      throw new DuplicateChoreNameError();
-    }
-    throw err;
-  }
+  return withUniqueName(write, 'chore.name', () => new DuplicateChoreNameError());
 }

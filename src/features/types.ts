@@ -11,6 +11,18 @@ import type { Config } from '../server/config.js';
 
 export type FeatureId = 'calendar' | 'chores';
 
+/** What useFeatureData and sharedFeatureData.ts give a tile or page. */
+export interface FeatureData<T> {
+  /** The last successful result; kept through a failed refetch. */
+  data: T | undefined;
+  /** Why the last fetch failed, or undefined after a success. */
+  error: string | undefined;
+  /** When `data` was fetched. */
+  fetchedAt: Date | undefined;
+  /** Fetches again now (a tile after its own mutation, say). */
+  refetch: () => void;
+}
+
 export interface Migration {
   id: number;
   name: string;

@@ -170,3 +170,30 @@ export async function readErrorMessage(res: Response): Promise<string> {
   }
   return res.status === 401 ? 'Admin is locked' : `Request failed (${res.status})`;
 }
+
+export function jsonRequest(method: 'POST' | 'PATCH', body: unknown): RequestInit {
+  return { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
+}
+
+export type AdminResult = { ok: true; res: Response } | { ok: false; message: string };
+
+/**
+ * An admin call through `session`, settled for a panel to show: the
+ * response when its status is `expected` (any 2xx when omitted), else the
+ * refusal's message, or "Could not reach Hearth" when no answer came.
+ */
+export async function sendAdmin(
+  session: AdminSession,
+  path: string,
+  init: RequestInit,
+  expected?: number,
+): Promise<AdminResult> {
+  let res: Response;
+  try {
+    res = await session.authFetch(path, init);
+  } catch {
+    return { ok: false, message: 'Could not reach Hearth' };
+  }
+  if (expected === undefined ? res.ok : res.status === expected) return { ok: true, res };
+  return { ok: false, message: await readErrorMessage(res) };
+}

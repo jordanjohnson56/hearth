@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import type { SubmitEvent } from 'react';
-import { readErrorMessage, useAdminSession } from '../../../client/admin/session.js';
-import type { AdminSession } from '../../../client/admin/session.js';
+import { jsonRequest, sendAdmin, useAdminSession } from '../../../client/admin/session.js';
+import type { AdminResult, AdminSession } from '../../../client/admin/session.js';
 import { readJson } from '../../../client/http.js';
 import { useFeatureData } from '../../../client/useFeatureData.js';
 import { configuredZone } from '../../../client/zone.js';
-import { localDateOf, partsOf } from '../../../core/localDateText.js';
+import { atUtcMidnight, localDateOf, partsOf } from '../../../core/localDateText.js';
+import { pointsText } from '../components/boardText.js';
 import { WEEKDAYS } from '../rule.js';
 import type { RecurrenceRule, RuleKind, Weekday } from '../rule.js';
 import type { ChoreInputWire, ChorePatchWire, ChoreWire, DefinitionsResponse } from '../types.js';
@@ -81,15 +82,10 @@ function ChoreRow({ chore, onChanged }: { chore: ChoreWire; onChanged: () => voi
   const setArchived = async (value: boolean) => {
     setBusy(true);
     setMessage('');
-    try {
-      const res = await patchChore(session, chore.id, { archived: value });
-      if (res.ok) onChanged();
-      else setMessage(await readErrorMessage(res));
-    } catch {
-      setMessage('Could not reach Hearth');
-    } finally {
-      setBusy(false);
-    }
+    const result = await patchChore(session, chore.id, { archived: value });
+    setBusy(false);
+    if (result.ok) onChanged();
+    else setMessage(result.message);
   };
 
   return (
@@ -101,7 +97,7 @@ function ChoreRow({ chore, onChanged }: { chore: ChoreWire; onChanged: () => voi
         </h3>
         <p className="chores-row-detail">
           <span>{describeRule(chore.rule)}</span>
-          <span>{describePoints(chore.points)}</span>
+          <span>{pointsText(chore.points)}</span>
           <span>from {formatDate(chore.startDate)}</span>
         </p>
       </div>
@@ -149,7 +145,7 @@ function initialValues(today: string): ChoreFormValues {
   return {
     name: '',
     kind: 'daily',
-    days: [weekdayOf(today)],
+    days: [weekdayTokenOf(today)],
     everyUnit: 'weeks',
     everyInterval: '2',
     monthDay: String(partsOf(today).day),
@@ -208,30 +204,25 @@ function AddChore({ onAdded }: { onAdded: () => void }) {
   const [tone, setTone] = useState<'error' | 'info'>('info');
   const [busy, setBusy] = useState(false);
 
+  const add = async () => {
+    setBusy(true);
+    const result = await sendAdmin(session, '/api/chores/definitions', jsonRequest('POST', inputOf(values)), 201);
+    setBusy(false);
+    if (result.ok) {
+      const chore = await readJson<ChoreWire>(result.res);
+      setTone('info');
+      setMessage(`${chore.name} added`);
+      setValues(initialValues(localDateOf(new Date(), zone)));
+      onAdded();
+    } else {
+      setTone('error');
+      setMessage(result.message);
+    }
+  };
+
   const submit = (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setBusy(true);
-    session
-      .authFetch('/api/chores/definitions', jsonRequest('POST', inputOf(values)))
-      .then(async (res) => {
-        if (res.status === 201) {
-          const chore = await readJson<ChoreWire>(res);
-          setTone('info');
-          setMessage(`${chore.name} added`);
-          setValues(initialValues(localDateOf(new Date(), zone)));
-          onAdded();
-        } else {
-          setTone('error');
-          setMessage(await readErrorMessage(res));
-        }
-      })
-      .catch(() => {
-        setTone('error');
-        setMessage('Could not reach Hearth');
-      })
-      .finally(() => {
-        setBusy(false);
-      });
+    void add();
   };
 
   return (
@@ -270,17 +261,11 @@ function EditChore({ chore, onDone }: { chore: ChoreWire; onDone: (changed: bool
       return;
     }
     setBusy(true);
-    patchChore(session, chore.id, patch)
-      .then(async (res) => {
-        if (res.ok) onDone(true);
-        else setMessage(await readErrorMessage(res));
-      })
-      .catch(() => {
-        setMessage('Could not reach Hearth');
-      })
-      .finally(() => {
-        setBusy(false);
-      });
+    void patchChore(session, chore.id, patch).then((result) => {
+      setBusy(false);
+      if (result.ok) onDone(true);
+      else setMessage(result.message);
+    });
   };
 
   return (
@@ -478,20 +463,13 @@ function ChoreFields({
   );
 }
 
-function patchChore(session: AdminSession, id: number, patch: ChorePatchWire): Promise<Response> {
-  return session.authFetch(`/api/chores/definitions/${String(id)}`, jsonRequest('PATCH', patch));
+function patchChore(session: AdminSession, id: number, patch: ChorePatchWire): Promise<AdminResult> {
+  return sendAdmin(session, `/api/chores/definitions/${String(id)}`, jsonRequest('PATCH', patch));
 }
 
-function jsonRequest(method: 'POST' | 'PATCH', body: unknown): RequestInit {
-  return { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
-}
-
-/** The ISO weekday token of a `YYYY-MM-DD`, on the UTC calendar (no zone involved). */
-function weekdayOf(date: string): Weekday {
-  const { year, month, day } = partsOf(date);
+function weekdayTokenOf(date: string): Weekday {
   // getUTCDay is 0 for Sunday; WEEKDAYS starts on Monday.
-  const index = (new Date(Date.UTC(year, month - 1, day)).getUTCDay() + 6) % 7;
-  return WEEKDAYS[index] ?? 'mon';
+  return WEEKDAYS[(atUtcMidnight(date).getUTCDay() + 6) % 7] ?? 'mon';
 }
 
 function ordinal(n: number): string {
@@ -524,14 +502,9 @@ function describeRule(rule: RecurrenceRule): string {
   }
 }
 
-function describePoints(points: number): string {
-  return `${String(points)} ${points === 1 ? 'point' : 'points'}`;
-}
-
 const dateFormat = new Intl.DateTimeFormat(undefined, { timeZone: 'UTC', day: 'numeric', month: 'short', year: 'numeric' });
 
-/** `Oct 1, 2026` for a `YYYY-MM-DD`, read on the UTC calendar so no zone shifts it. */
+/** `Oct 1, 2026` for a `YYYY-MM-DD`. */
 function formatDate(date: string): string {
-  const { year, month, day } = partsOf(date);
-  return dateFormat.format(new Date(Date.UTC(year, month - 1, day)));
+  return dateFormat.format(atUtcMidnight(date));
 }

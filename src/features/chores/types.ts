@@ -1,8 +1,10 @@
 // Wire shapes of the chores API, shared by the server and the client.
 // Instants are epoch milliseconds, local dates YYYY-MM-DD (docs/adr/0004).
 import type { PersonWire } from '../../core/person.js';
+import type { LocalDate } from '../../core/time.js';
 import type { VoidReason } from './completion.js';
 import type { RecurrenceRule } from './rule.js';
+import type { Standing } from './standings.js';
 
 /** A chore definition as GET/POST/PATCH /api/chores/definitions return it. */
 export interface ChoreWire {
@@ -11,7 +13,7 @@ export interface ChoreWire {
   rule: RecurrenceRule;
   /** 1–1000. Copied onto each completion when it is claimed. */
   points: number;
-  startDate: string;
+  startDate: LocalDate;
   /** When it was archived, or null for an active chore. */
   archivedAt: number | null;
   createdAt: number;
@@ -70,31 +72,30 @@ export interface AnytimeChoreWire extends BoardChoreWire {
 
 /** A scheduled chore that is not waiting. */
 export interface UpcomingChoreWire extends BoardChoreWire {
-  /** Its next due date after today, YYYY-MM-DD. */
-  nextDue: string;
+  /** Its next due date after today. */
+  nextDue: LocalDate;
 }
 
-/** A completion of this week that counts. */
-export interface BoardCompletionWire {
+/** A completion as POST /api/chores/:id/claims returns it (201). */
+export interface CompletionWire {
   id: number;
   choreId: number;
-  /** The chore's current name (it may be archived since). */
-  choreName: string;
   personId: number;
   completedAt: number;
   pointsAwarded: number;
 }
 
-export interface StandingWire {
-  /** 1 for the most points; equal points share a rank (1, 1, 3). */
-  rank: number;
-  personId: number;
-  points: number;
+/** A completion of this week that counts. */
+export interface BoardCompletionWire extends CompletionWire {
+  /** The chore's current name (it may be archived since). */
+  choreName: string;
 }
+
+export type StandingWire = Standing;
 
 export interface BoardResponse {
   /** The configured zone's local date the states were worked out for. */
-  today: string;
+  today: LocalDate;
   /** The instant this week began: Monday 00:00 in the configured zone. */
   weekStart: number;
   /** Everyone, in creation order: the completions and standings name them by id. */
@@ -116,28 +117,12 @@ export interface ClaimInputWire {
   personId: number;
 }
 
-/** A completion as POST /api/chores/:id/claims returns it (201). */
-export interface CompletionWire {
-  id: number;
-  choreId: number;
-  personId: number;
-  completedAt: number;
-  pointsAwarded: number;
-}
-
 // Corrections (bearer): POST /api/chores/completions/:id/void answers 204;
 // POST /api/chores/completions/:id/reassign takes ClaimInputWire and answers
 // 201 with the new CompletionWire.
 
 /** A completion in the admin correction list, voided or not. */
-export interface AdminCompletionWire {
-  id: number;
-  choreId: number;
-  /** The chore's current name (it may be archived since). */
-  choreName: string;
-  personId: number;
-  completedAt: number;
-  pointsAwarded: number;
+export interface AdminCompletionWire extends BoardCompletionWire {
   /** Its void, or null while it counts. */
   voided: { voidedAt: number; reason: VoidReason } | null;
 }

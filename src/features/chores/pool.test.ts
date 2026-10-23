@@ -146,6 +146,15 @@ describe('choreStatus', () => {
 
       expect(status).toEqual({ kind: 'anytime', claimedToday: false });
     });
+
+    it('is not started, so not claimable, before its start date, and anytime from it', () => {
+      const summerChore = chore({ kind: 'whenever' }, '2026-10-24');
+      // Saturday 2026-10-24 00:00 CDT.
+      const saturday = new Date('2026-10-24T05:00:00Z');
+
+      expect(choreStatus(summerChore, [], NOW, CHICAGO)).toEqual({ kind: 'not-started' });
+      expect(choreStatus(summerChore, [], saturday, CHICAGO)).toEqual({ kind: 'anytime', claimedToday: false });
+    });
   });
 });
 
@@ -156,6 +165,7 @@ describe('isClaimable', () => {
     [{ kind: 'upcoming', nextDue: d('2026-10-24') }, false],
     [{ kind: 'anytime', claimedToday: false }, true],
     [{ kind: 'anytime', claimedToday: true }, false],
+    [{ kind: 'not-started' }, false],
   ])('%j is %s', (status, expected) => {
     expect(isClaimable(status)).toBe(expected);
   });

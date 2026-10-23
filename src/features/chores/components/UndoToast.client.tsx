@@ -11,7 +11,6 @@ export interface UndoToastProps {
   message: string;
   /** Shows the Undo button; false once an undo was tried (the message then says how it went). */
   canUndo: boolean;
-  /** True while the undo is being sent. */
   busy: boolean;
   /** How long the toast stays up; UNDO_TOAST_MS by default. Give the toast a new key to restart it. */
   durationMs?: number;

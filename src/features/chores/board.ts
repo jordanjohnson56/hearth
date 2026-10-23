@@ -3,10 +3,10 @@
 // The router (feature.server.ts) maps its results to HTTP.
 import type { Database } from 'better-sqlite3';
 import { localDate } from '../../core/time.js';
-import { getPerson, listPeople } from '../../server/db/personRepository.js';
-import { toPersonWire } from '../../server/people.js';
+import { getPerson, listPeople, toPersonWire } from '../../server/db/personRepository.js';
 import { getChore, listChores } from './choreRepository.js';
 import type { Chore } from './choreRepository.js';
+import { toCompletionWire } from './completion.js';
 import type { Completion } from './completion.js';
 import {
   getCompletion,
@@ -49,10 +49,12 @@ export function readBoard(db: Database, now: Date, zone: string): BoardResponse 
         waiting.push({ chore, status });
         break;
       case 'anytime':
-        anytime.push({ ...summary(chore), claimedToday: status.claimedToday });
+        anytime.push({ ...toBoardChoreWire(chore), claimedToday: status.claimedToday });
         break;
       case 'upcoming':
-        upcoming.push({ ...summary(chore), nextDue: status.nextDue });
+        upcoming.push({ ...toBoardChoreWire(chore), nextDue: status.nextDue });
+        break;
+      case 'not-started':
         break;
     }
   }
@@ -74,12 +76,8 @@ export function readBoard(db: Database, now: Date, zone: string): BoardResponse 
     anytime,
     upcoming,
     completions: thisWeek.map((completion) => ({
-      id: completion.id,
-      choreId: completion.choreId,
+      ...toCompletionWire(completion),
       choreName: names.get(completion.choreId) ?? '',
-      personId: completion.personId,
-      completedAt: completion.completedAt.getTime(),
-      pointsAwarded: completion.pointsAwarded,
     })),
     standings: standings(people, thisWeek, week),
   };
@@ -93,7 +91,9 @@ export type ClaimResult =
   /** A scheduled chore that is not waiting. */
   | { kind: 'not-waiting' }
   /** An anytime chore already claimed today. */
-  | { kind: 'claimed-today' };
+  | { kind: 'claimed-today' }
+  /** An anytime chore before its start date. */
+  | { kind: 'not-started' };
 
 /** Records that `personId` did chore `choreId` at `now`, worth the chore's points now. */
 export function claimChore(db: Database, choreId: number, personId: number, now: Date, zone: string): ClaimResult {
@@ -103,7 +103,10 @@ export function claimChore(db: Database, choreId: number, personId: number, now:
     if (getPerson(db, personId) === undefined) return { kind: 'no-person' };
     if (chore.archivedAt !== null) return { kind: 'archived' };
     const status = statusOf(chore, latestCountedCompletion(db, chore.id), now, zone);
-    if (!isClaimable(status)) return { kind: status.kind === 'anytime' ? 'claimed-today' : 'not-waiting' };
+    if (!isClaimable(status)) {
+      if (status.kind === 'anytime') return { kind: 'claimed-today' };
+      return { kind: status.kind === 'not-started' ? 'not-started' : 'not-waiting' };
+    }
     const completion = insertCompletion(db, { choreId, personId, completedAt: now, pointsAwarded: chore.points });
     return { kind: 'claimed', completion };
   })();
@@ -130,14 +133,14 @@ function statusOf(chore: Chore, latest: Completion | undefined, now: Date, zone:
   return choreStatus(chore, latest === undefined ? [] : [latest], now, zone);
 }
 
-function summary(chore: Chore): BoardChoreWire {
+function toBoardChoreWire(chore: Chore): BoardChoreWire {
   return { id: chore.id, name: chore.name, points: chore.points };
 }
 
 function toWaitingWire(chore: Chore, status: WaitingStatus): WaitingChoreWire {
   return status.kind === 'overdue'
-    ? { ...summary(chore), state: 'overdue', daysLate: status.daysLate }
-    : { ...summary(chore), state: 'due-today' };
+    ? { ...toBoardChoreWire(chore), state: 'overdue', daysLate: status.daysLate }
+    : { ...toBoardChoreWire(chore), state: 'due-today' };
 }
 
 function compareText(a: string, b: string): number {

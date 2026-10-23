@@ -4,7 +4,6 @@ import { readErrorMessage } from '../../client/admin/session.js';
 import { readJson } from '../../client/http.js';
 import type { BoardResponse, ClaimInputWire, CompletionWire } from './types.js';
 
-/** GET /api/chores/board. */
 export async function fetchBoard(signal: AbortSignal): Promise<BoardResponse> {
   const res = await fetch('/api/chores/board', { signal });
   if (!res.ok) throw new Error(`Could not load the chores (${String(res.status)})`);

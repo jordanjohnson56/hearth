@@ -47,3 +47,8 @@ export class BareHttpError extends Error {
 export function bodyOf(body: unknown): Record<string, unknown> {
   return typeof body === 'object' && body !== null ? (body as Record<string, unknown>) : {};
 }
+
+/** A `:id` route parameter as a positive whole number, or undefined. At most 16 digits, so it stays an exact number. */
+export function positiveId(raw: unknown): number | undefined {
+  return typeof raw === 'string' && /^[1-9]\d{0,15}$/.test(raw) ? Number(raw) : undefined;
+}

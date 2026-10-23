@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addDays, datesSpanning, formatLocalDate, localDateOf, partsOf } from './localDateText.js';
+import { addDays, atUtcMidnight, datesSpanning, formatLocalDate, localDateOf, partsOf } from './localDateText.js';
 import { localDate } from './time.js';
 
 describe('localDateOf', () => {
@@ -48,6 +48,15 @@ describe('partsOf and formatLocalDate', () => {
     expect(() => partsOf('2026-3-8')).toThrow(RangeError);
     expect(() => partsOf('20260308')).toThrow(RangeError);
     expect(() => partsOf('')).toThrow(RangeError);
+  });
+});
+
+describe('atUtcMidnight', () => {
+  it('names the same calendar day when formatted in UTC', () => {
+    const day = atUtcMidnight('2026-03-08');
+
+    expect(day.toISOString()).toBe('2026-03-08T00:00:00.000Z');
+    expect(new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', weekday: 'long' }).format(day)).toBe('Sunday');
   });
 });
 

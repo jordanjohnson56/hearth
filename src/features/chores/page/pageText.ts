@@ -2,13 +2,7 @@
 // dates are `YYYY-MM-DD` text worked with the core's local-date text
 // helpers, and a time is the header clock's format (formatTime).
 import { formatTime } from '../../../core/clock.js';
-import { addDays, localDateOf, partsOf } from '../../../core/localDateText.js';
-
-/** A `YYYY-MM-DD` at UTC midnight: printed in UTC, it names that day whatever the device's zone. */
-function atUtcMidnight(date: string): Date {
-  const { year, month, day } = partsOf(date);
-  return new Date(Date.UTC(year, month - 1, day));
-}
+import { addDays, atUtcMidnight, localDateOf, partsOf } from '../../../core/localDateText.js';
 
 /**
  * When an upcoming chore is next due, from the board's `today`:

@@ -10,12 +10,18 @@
 import type { Database } from 'better-sqlite3';
 import { Router } from 'express';
 import type { Request, RequestHandler } from 'express';
-import type { PeopleResponse, PersonWire } from '../core/person.js';
+import type { PeopleResponse } from '../core/person.js';
 import { isPersonColor } from '../core/personColor.js';
 import type { PersonColor } from '../core/personColor.js';
-import { DuplicateDisplayNameError, insertPerson, listPeople, updatePerson } from './db/personRepository.js';
-import type { Person, PersonPatch } from './db/personRepository.js';
-import { HttpError, bodyOf, jsonBody } from './http.js';
+import {
+  DuplicateDisplayNameError,
+  insertPerson,
+  listPeople,
+  toPersonWire,
+  updatePerson,
+} from './db/personRepository.js';
+import type { PersonPatch } from './db/personRepository.js';
+import { HttpError, bodyOf, jsonBody, positiveId } from './http.js';
 
 export interface PeopleRouterOptions {
   db: Database;
@@ -54,10 +60,6 @@ export function createPeopleRouter(options: PeopleRouterOptions): Router {
   return router;
 }
 
-export function toPersonWire(person: Person): PersonWire {
-  return { id: person.id, displayName: person.displayName, color: person.color, icon: person.icon };
-}
-
 /** A taken name is the client's to fix: a 409 with the repository's message. */
 function withNameConflict<T>(write: () => T): T {
   try {
@@ -71,9 +73,9 @@ function withNameConflict<T>(write: () => T): T {
 // Validation. Every message is written for the client and names the field.
 
 function idOf(req: Request): number {
-  const raw = req.params['id'];
-  if (typeof raw !== 'string' || !/^[1-9]\d*$/.test(raw)) throw notFound();
-  return Number(raw);
+  const id = positiveId(req.params['id']);
+  if (id === undefined) throw notFound();
+  return id;
 }
 
 function notFound(): HttpError {

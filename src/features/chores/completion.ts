@@ -1,6 +1,7 @@
 // The completion log's records as the pure core and the services see them
-// (GLOSSARY: completion, void). Types only: the rows live in
+// (GLOSSARY: completion, void), and their wire form. The rows live in
 // completionRepository.ts, which never updates or deletes one.
+import type { CompletionWire } from './types.js';
 
 export const VOID_REASONS = ['undo', 'correction'] as const;
 /** undo: from the wall within the undo window; correction: an admin's void or reassignment. */
@@ -21,4 +22,14 @@ export interface Completion {
   pointsAwarded: number;
   /** Its void, or null while it counts. */
   voided: CompletionVoid | null;
+}
+
+export function toCompletionWire(completion: Completion): CompletionWire {
+  return {
+    id: completion.id,
+    choreId: completion.choreId,
+    personId: completion.personId,
+    completedAt: completion.completedAt.getTime(),
+    pointsAwarded: completion.pointsAwarded,
+  };
 }
