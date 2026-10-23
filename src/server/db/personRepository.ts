@@ -59,6 +59,11 @@ export function listPeople(db: Database): Person[] {
   return rows.map(toPerson);
 }
 
+export function getPerson(db: Database, id: number): Person | undefined {
+  const row = db.prepare(`SELECT ${COLUMNS} FROM person WHERE id = ?`).get(id) as PersonRow | undefined;
+  return row === undefined ? undefined : toPerson(row);
+}
+
 /** Inserts a new person without avatar or icon. Throws DuplicateDisplayNameError. */
 export function insertPerson(db: Database, input: PersonInput): Person {
   checkColor(input.color);
