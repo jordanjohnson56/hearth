@@ -153,12 +153,17 @@ function SourceStatus({ source }: { source: SourceWire }) {
       </div>
       {source.skippedCount > 0 && (
         <div>
-          <dt>Unreadable events</dt>
-          <dd>{source.skippedCount}</dd>
+          <dt>Skipped</dt>
+          <dd data-tone="error">{describeSkipped(source.skippedCount)}</dd>
         </div>
       )}
     </dl>
   );
+}
+
+/** The row's line for VEVENTs the last fetch could not read. */
+function describeSkipped(count: number): string {
+  return `${String(count)} ${count === 1 ? 'event' : 'events'} could not be read`;
 }
 
 interface SourceFormValues {

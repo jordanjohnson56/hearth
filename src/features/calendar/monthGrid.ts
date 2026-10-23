@@ -1,9 +1,11 @@
 // The month page's date math, polyfill-free so it can live in the browser
 // bundle (test/clientBundle.test.ts): local dates are `YYYY-MM-DD` text
-// and the arithmetic runs on Date.UTC, which has no zone to get wrong.
-// The server's month math is src/core/time.ts (Temporal); the two agree
-// on every date because both are the proleptic Gregorian calendar.
+// (src/core/localDateText.ts) and the month arithmetic runs on Date.UTC,
+// which has no zone to get wrong. The server's month math is
+// src/core/time.ts (Temporal); the two agree on every date because both
+// are the proleptic Gregorian calendar.
 
+import { addDays, localDateOf } from '../../core/localDateText.js';
 import type { CalendarEventWire } from './types.js';
 
 /** One square of the grid. */
@@ -54,29 +56,6 @@ export function monthGrid(year: number, month: number): GridCell[] {
 }
 
 const CELL_PILL_CAP = 3;
-
-/** `date` plus `days` (may be negative). */
-export function addDays(date: string, days: number): string {
-  const [year, month, day] = date.split('-').map(Number) as [number, number, number];
-  return formatUtcDate(new Date(Date.UTC(year, month - 1, day + days)));
-}
-
-/**
- * The calendar date of `instant` on the wall in `zone`, from Intl parts
- * (the same mechanism as src/core/theme.ts `wallTime`), so the Temporal
- * polyfill stays out of the browser bundle.
- */
-export function localDateOf(instant: Date, zone: string): string {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: zone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(instant);
-  const part = (type: 'year' | 'month' | 'day') =>
-    parts.find((candidate) => candidate.type === type)?.value ?? '';
-  return `${part('year').padStart(4, '0')}-${part('month')}-${part('day')}`;
-}
 
 /**
  * The local dates an event belongs on. An all-day event covers its dates up

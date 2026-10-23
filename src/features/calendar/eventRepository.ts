@@ -66,6 +66,14 @@ export function replaceEvents(db: Database, sourceId: number, events: readonly P
   }
 }
 
+/** Every stored occurrence of one source, in a stable order. */
+export function listEventsOf(db: Database, sourceId: number): StoredEvent[] {
+  const rows = db
+    .prepare(`SELECT ${COLUMNS} FROM calendar_event WHERE source_id = ? ORDER BY id`)
+    .all(sourceId) as EventRow[];
+  return rows.map(toEvent);
+}
+
 export function deleteEvents(db: Database, sourceId: number): void {
   db.prepare('DELETE FROM calendar_event WHERE source_id = ?').run(sourceId);
 }

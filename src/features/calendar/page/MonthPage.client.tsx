@@ -4,12 +4,12 @@ import { useFeatureData } from '../../../client/useFeatureData.js';
 import { useNow } from '../../../client/useNow.js';
 import { configuredZone } from '../../../client/zone.js';
 import { formatClock } from '../../../core/clock.js';
+import { localDateOf } from '../../../core/localDateText.js';
 import {
   addMonths,
   eventsByDate,
   isMonthLoaded,
   loadedMonths,
-  localDateOf,
   monthGrid,
   monthPath,
   parseMonthPath,
