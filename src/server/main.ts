@@ -62,12 +62,23 @@ const server = app.listen(config.port, (error?: Error) => {
   );
 });
 
+/** How long in-flight requests get to finish before their sockets are cut. */
+const SHUTDOWN_GRACE_MS = 5_000;
+
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.once(signal, () => {
     logger.info({ signal }, 'shutting down');
+    // Stop accepting connections (idle keep-alive ones close now), then end
+    // the event streams, which never finish on their own: without that,
+    // close() waits until Docker's SIGKILL and the database is never closed.
     server.close(() => {
       db.close();
       process.exit(0);
     });
+    broadcaster.close();
+    // Anything still open after the grace period is cut.
+    setTimeout(() => {
+      server.closeAllConnections();
+    }, SHUTDOWN_GRACE_MS).unref();
   });
 }

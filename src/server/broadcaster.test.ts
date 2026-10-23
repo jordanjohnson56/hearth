@@ -51,3 +51,42 @@ describe('createBroadcaster', () => {
     expect(text()).not.toContain('secret-token');
   });
 });
+
+describe('Broadcaster.close', () => {
+  it('tells every subscriber it is closing and drops them all', () => {
+    const broadcaster = createBroadcaster(captureLogger().logger);
+    const closed: string[] = [];
+    broadcaster.subscribe(
+      () => undefined,
+      () => closed.push('first'),
+    );
+    broadcaster.subscribe(
+      () => undefined,
+      () => closed.push('second'),
+    );
+
+    broadcaster.close();
+
+    expect(closed).toEqual(['first', 'second']);
+    expect(broadcaster.subscriberCount).toBe(0);
+  });
+
+  it('closes a subscriber that arrives after close straight away', () => {
+    const broadcaster = createBroadcaster(captureLogger().logger);
+    broadcaster.close();
+    const hints: FeatureId[] = [];
+    let closed = false;
+
+    broadcaster.subscribe(
+      (feature) => hints.push(feature),
+      () => {
+        closed = true;
+      },
+    );
+    broadcaster.publish('chores');
+
+    expect(closed).toBe(true);
+    expect(hints).toEqual([]);
+    expect(broadcaster.subscriberCount).toBe(0);
+  });
+});

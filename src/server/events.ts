@@ -29,17 +29,27 @@ export function eventsHandler(broadcaster: Broadcaster): RequestHandler {
     // browser's EventSource connecting until the first keepalive.
     res.write(': connected\n\n');
 
-    const unsubscribe = broadcaster.subscribe((feature) => {
-      // The socket can be gone before 'close' has unsubscribed us.
-      if (res.writableEnded || res.destroyed) {
-        unsubscribe();
-        return;
-      }
-      res.write(`data: ${encodeChangeHint(feature)}\n\n`);
-    });
+    // The socket can be gone before 'close' has unsubscribed us.
+    const isOpen = (): boolean => !res.writableEnded && !res.destroyed;
     const keepalive = setInterval(() => {
-      res.write(': keepalive\n\n');
+      if (isOpen()) res.write(': keepalive\n\n');
     }, KEEPALIVE_INTERVAL_MS);
+
+    const unsubscribe = broadcaster.subscribe(
+      (feature) => {
+        if (!isOpen()) {
+          unsubscribe();
+          return;
+        }
+        res.write(`data: ${encodeChangeHint(feature)}\n\n`);
+      },
+      () => {
+        // Shutdown: end the stream so the server can finish closing. The
+        // browser's EventSource reconnects once Hearth is back.
+        clearInterval(keepalive);
+        if (isOpen()) res.end();
+      },
+    );
 
     req.on('close', () => {
       clearInterval(keepalive);

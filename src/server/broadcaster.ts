@@ -17,39 +17,71 @@ export interface Broadcaster {
    * and logged at warn, and the others still get the hint.
    */
   publish(feature: FeatureId): void;
-  /** Adds a subscriber. Returns its unsubscribe function. */
-  subscribe(listener: ChangeListener): () => void;
+  /**
+   * Adds a subscriber. `onClose` runs when the broadcaster closes (at
+   * shutdown), so an event stream can end its response. Returns the
+   * subscriber's unsubscribe function.
+   */
+  subscribe(listener: ChangeListener, onClose?: () => void): () => void;
+  /**
+   * Shutdown: runs every subscriber's `onClose` and drops them all. After
+   * this, publish does nothing and a new subscriber is closed at once.
+   */
+  close(): void;
   /** Number of current subscribers (open event streams). */
   readonly subscriberCount: number;
 }
 
+interface Subscriber {
+  listener: ChangeListener;
+  onClose: (() => void) | undefined;
+}
+
 export function createBroadcaster(logger: Logger): Broadcaster {
-  const listeners = new Set<ChangeListener>();
+  // An object per subscription, so the same function subscribed twice counts twice.
+  const subscribers = new Set<Subscriber>();
+  let closed = false;
+
+  const runOnClose = (subscriber: Subscriber): void => {
+    try {
+      subscriber.onClose?.();
+    } catch (err) {
+      logger.warn({ err }, 'live-update subscriber failed to close');
+    }
+  };
+
   return {
     publish(feature) {
-      // Iterate a copy: a failing listener is removed mid-loop.
-      for (const listener of [...listeners]) {
+      // Iterate a copy: a failing subscriber is removed mid-loop.
+      for (const subscriber of [...subscribers]) {
         try {
-          listener(feature);
+          subscriber.listener(feature);
         } catch (err) {
-          listeners.delete(listener);
+          subscribers.delete(subscriber);
           // The err serializer cuts any URL in the message down to its host.
           logger.warn({ err, feature }, 'dropped a live-update subscriber');
         }
       }
     },
-    subscribe(listener) {
-      // Wrapped so that the same function subscribed twice counts twice.
-      const entry: ChangeListener = (feature) => {
-        listener(feature);
-      };
-      listeners.add(entry);
+    subscribe(listener, onClose) {
+      const subscriber: Subscriber = { listener, onClose };
+      if (closed) {
+        runOnClose(subscriber);
+        return () => undefined;
+      }
+      subscribers.add(subscriber);
       return () => {
-        listeners.delete(entry);
+        subscribers.delete(subscriber);
       };
     },
+    close() {
+      closed = true;
+      const closing = [...subscribers];
+      subscribers.clear();
+      for (const subscriber of closing) runOnClose(subscriber);
+    },
     get subscriberCount() {
-      return listeners.size;
+      return subscribers.size;
     },
   };
 }

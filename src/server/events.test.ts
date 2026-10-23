@@ -17,6 +17,8 @@ interface OpenStream {
   nextChunk: () => Promise<string>;
   /** Drops the connection, as a sleeping iPad would. */
   abort: () => void;
+  /** Resolves when the server ends the stream. */
+  ended: Promise<void>;
 }
 
 /**
@@ -37,6 +39,10 @@ async function openEventStream(broadcaster: Broadcaster): Promise<OpenStream> {
       else resolve(text);
     });
 
+  let markEnded: () => void = () => undefined;
+  const ended = new Promise<void>((resolve) => {
+    markEnded = resolve;
+  });
   const response = new Promise<IncomingMessage>((resolve) => {
     // Under Node, superagent hands a custom parser the raw IncomingMessage
     // (its typings only offer a union of browser and Node shapes). Listen
@@ -50,6 +56,7 @@ async function openEventStream(broadcaster: Broadcaster): Promise<OpenStream> {
         if (reader) reader(text);
         else arrived.push(text);
       });
+      res.on('end', markEnded);
       resolve(res);
     });
   });
@@ -67,6 +74,7 @@ async function openEventStream(broadcaster: Broadcaster): Promise<OpenStream> {
     opening: await nextChunk(),
     nextChunk,
     abort,
+    ended,
   };
 }
 
@@ -129,6 +137,17 @@ describe('GET /api/events', () => {
 
     expect(await chunk).toBe('data: {"feature":"chores"}\n\n');
     expect(broadcaster.subscriberCount).toBe(1);
+  });
+
+  it('ends every open stream when the broadcaster closes, for shutdown', async () => {
+    const broadcaster = createBroadcaster(captureLogger().logger);
+    const first = await openEventStream(broadcaster);
+    const second = await openEventStream(broadcaster);
+
+    broadcaster.close();
+
+    await Promise.all([first.ended, second.ended]);
+    expect(broadcaster.subscriberCount).toBe(0);
   });
 
   it('sends a keepalive comment on a quiet stream and stops after disconnect', async () => {
