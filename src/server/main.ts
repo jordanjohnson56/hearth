@@ -49,7 +49,7 @@ const clientDist = fileURLToPath(new URL('../client', import.meta.url));
 // One hub for the process: M1's poll jobs and M2's writes publish to it.
 const broadcaster = createBroadcaster(logger);
 
-const app = createApp({ clientDist, config, logger, broadcaster });
+const { app } = createApp({ clientDist, config, logger, db, broadcaster });
 
 const server = app.listen(config.port, (error?: Error) => {
   if (error !== undefined) {

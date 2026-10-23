@@ -1,7 +1,6 @@
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
-import { testAppOptions, testConfig } from '../../test/helpers/app.js';
-import { createApp } from './app.js';
+import { testApp, testConfig } from '../../test/helpers/app.js';
 
 /** The content of the `hearth-zone` meta tag, as it appears in the HTML. */
 function zoneMeta(html: string): string | undefined {
@@ -12,7 +11,7 @@ describe('configured zone in the served index.html', () => {
   it.each(['/', '/index.html', '/chores', '/calendar/2026/10'])(
     'injects the configured zone into %s',
     async (path) => {
-      const app = createApp(testAppOptions({ config: testConfig({ zone: 'Asia/Kolkata' }) }));
+      const app = testApp({ config: testConfig({ zone: 'Asia/Kolkata' }) });
 
       const res = await request(app).get(path);
 
@@ -24,7 +23,7 @@ describe('configured zone in the served index.html', () => {
   );
 
   it('puts the zone inside <head>, before the page body', async () => {
-    const res = await request(createApp(testAppOptions())).get('/');
+    const res = await request(testApp()).get('/');
 
     const meta = res.text.indexOf('<meta name="hearth-zone"');
     expect(meta).toBeGreaterThan(res.text.indexOf('<head>'));
@@ -33,7 +32,7 @@ describe('configured zone in the served index.html', () => {
 
   it('escapes the zone for HTML instead of trusting it', async () => {
     const hostile = 'X/"><script>alert(1)</script><x a=\'&';
-    const app = createApp(testAppOptions({ config: testConfig({ zone: hostile }) }));
+    const app = testApp({ config: testConfig({ zone: hostile }) });
 
     const res = await request(app).get('/');
 
@@ -44,7 +43,7 @@ describe('configured zone in the served index.html', () => {
   });
 
   it('still serves other static files unchanged', async () => {
-    const res = await request(createApp(testAppOptions())).get('/assets/fixture.css');
+    const res = await request(testApp()).get('/assets/fixture.css');
 
     expect(res.status).toBe(200);
     expect(res.type).toBe('text/css');
@@ -52,7 +51,7 @@ describe('configured zone in the served index.html', () => {
   });
 
   it('asks the browser to revalidate index.html, so a changed zone shows after a restart', async () => {
-    const res = await request(createApp(testAppOptions())).get('/');
+    const res = await request(testApp()).get('/');
 
     expect(res.headers['cache-control']).toBe('no-cache');
   });

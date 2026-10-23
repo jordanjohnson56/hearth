@@ -3,13 +3,12 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import request from 'supertest';
 import { describe, expect, it, onTestFinished } from 'vitest';
-import { testAppOptions } from '../../test/helpers/app.js';
+import { testApp } from '../../test/helpers/app.js';
 import { captureLogger } from '../../test/helpers/logger.js';
-import { createApp } from './app.js';
 
 describe('app factory', () => {
   it('serves the SPA index.html for the root path', async () => {
-    const res = await request(createApp(testAppOptions())).get('/');
+    const res = await request(testApp()).get('/');
 
     expect(res.status).toBe(200);
     expect(res.type).toBe('text/html');
@@ -17,7 +16,7 @@ describe('app factory', () => {
   });
 
   it('serves the SPA index.html for a non-API client route', async () => {
-    const res = await request(createApp(testAppOptions())).get('/chores/week');
+    const res = await request(testApp()).get('/chores/week');
 
     expect(res.status).toBe(200);
     expect(res.type).toBe('text/html');
@@ -27,7 +26,7 @@ describe('app factory', () => {
   it.each(['/calendar/2026/10', '/chores/week/2026-10-19', '/v1.2/settings'])(
     'serves the SPA index.html for client route %s',
     async (path) => {
-      const res = await request(createApp(testAppOptions())).get(path);
+      const res = await request(testApp()).get(path);
 
       expect(res.status).toBe(200);
       expect(res.text).toContain('hearth-fixture-index');
@@ -42,7 +41,7 @@ describe('app factory', () => {
     '/robots.txt',
     '/calendar/manifest.webmanifest',
   ])('answers missing static file %s with a 404, not index.html', async (path) => {
-    const res = await request(createApp(testAppOptions())).get(path);
+    const res = await request(testApp()).get(path);
 
     expect(res.status).toBe(404);
     expect(res.text).not.toContain('hearth-fixture-index');
@@ -51,7 +50,7 @@ describe('app factory', () => {
   it.each(['/api/nope', '/api', '/api/calendar/events/7'])(
     'answers unknown API path %s with a JSON 404 and no stack trace',
     async (path) => {
-      const res = await request(createApp(testAppOptions())).get(path);
+      const res = await request(testApp()).get(path);
 
       expect(res.status).toBe(404);
       expect(res.type).toBe('application/json');
@@ -62,7 +61,7 @@ describe('app factory', () => {
 
   it('answers a malformed request with a JSON 4xx and no stack trace', async () => {
     // A broken percent-escape makes Express fail while decoding the path.
-    const res = await request(createApp(testAppOptions())).get('/%E0%A4%A');
+    const res = await request(testApp()).get('/%E0%A4%A');
 
     expect(res.status).toBe(400);
     expect(res.type).toBe('application/json');
@@ -76,7 +75,7 @@ describe('app factory', () => {
       rmSync(emptyDist, { recursive: true, force: true });
     });
 
-    const res = await request(createApp(testAppOptions({ clientDist: emptyDist }))).get('/');
+    const res = await request(testApp({ clientDist: emptyDist })).get('/');
 
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Not Found' });
@@ -84,7 +83,7 @@ describe('app factory', () => {
   });
 
   it('answers an unknown API path with a JSON 404 for non-GET methods too', async () => {
-    const res = await request(createApp(testAppOptions())).post('/api/nope');
+    const res = await request(testApp()).post('/api/nope');
 
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Not Found' });
@@ -100,7 +99,7 @@ describe('app factory', () => {
     const { logger, lines, text } = captureLogger();
     const secret = 'https://cal.example/private-0123abcd/basic.ics';
 
-    const res = await request(createApp(testAppOptions({ clientDist: brokenDist, logger })))
+    const res = await request(testApp({ clientDist: brokenDist, logger }))
       .get(`/admin/calendars?source=${encodeURIComponent(secret)}`)
       .send({ url: secret });
 
@@ -122,7 +121,7 @@ describe('app factory', () => {
   it('does not log 4xx responses', async () => {
     const { logger, lines } = captureLogger();
 
-    await request(createApp(testAppOptions({ logger }))).get('/api/nope');
+    await request(testApp({ logger })).get('/api/nope');
 
     expect(lines()).toEqual([]);
   });

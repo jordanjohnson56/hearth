@@ -1,10 +1,11 @@
 import { readFile } from 'node:fs/promises';
 import { STATUS_CODES } from 'node:http';
 import { join } from 'node:path';
+import type { Database } from 'better-sqlite3';
 import express from 'express';
 import type { ErrorRequestHandler, Express, RequestHandler, Response } from 'express';
 import { serverFeatureList } from '../features/registry.server.js';
-import type { ServerFeature } from '../features/types.js';
+import type { FeatureContext, FeatureJob, ServerFeature } from '../features/types.js';
 import { createBroadcaster } from './broadcaster.js';
 import type { Broadcaster } from './broadcaster.js';
 import type { Config } from './config.js';
@@ -18,8 +19,19 @@ export interface AppOptions {
   /** Validated bootstrap config; the app never reads process.env. */
   config: Config;
   logger: Logger;
+  /** The migrated database; feature routers and jobs read and write it. */
+  db: Database;
   /** Features to mount. Defaults to the server registry; tests pass their own. */
   features?: readonly ServerFeature[];
+  /** The clock features see. Defaults to the real one; tests inject a fixed one. */
+  now?: () => Date;
+  /** Outbound HTTP for features. Defaults to the global fetch; tests inject fixtures. */
+  fetch?: typeof globalThis.fetch;
+  /**
+   * The admin gate handed to features. Defaults to a placeholder that refuses
+   * everything with a 401 until core's bearer-token middleware exists.
+   */
+  requireAdmin?: RequestHandler;
   /**
    * Live-update hub behind GET /api/events. The entrypoint passes the one it
    * hands to jobs and writers; defaults to a private one nothing publishes to.
@@ -27,16 +39,38 @@ export interface AppOptions {
   broadcaster?: Broadcaster;
 }
 
-/** Builds the Hearth HTTP app. Does not listen; the entrypoint does. */
-export function createApp(options: AppOptions): Express {
+export interface CreatedApp {
+  app: Express;
+  /** Every feature's job, in registry order, for the entrypoint's scheduler. */
+  jobs: readonly FeatureJob[];
+}
+
+/**
+ * Builds the Hearth HTTP app and each feature's job. Does not listen or run
+ * the jobs; the entrypoint does, after the database is migrated.
+ */
+export function createApp(options: AppOptions): CreatedApp {
   const app = express();
   app.disable('x-powered-by');
 
+  const broadcaster = options.broadcaster ?? createBroadcaster(options.logger);
+  const ctx: FeatureContext = {
+    db: options.db,
+    broadcaster,
+    logger: options.logger,
+    config: options.config,
+    now: options.now ?? (() => new Date()),
+    fetch: options.fetch ?? globalThis.fetch,
+    requireAdmin: options.requireAdmin ?? placeholderRequireAdmin,
+  };
+
+  const jobs: FeatureJob[] = [];
   for (const feature of options.features ?? serverFeatureList) {
-    if (feature.router) app.use(`/api/${feature.id}`, feature.router);
+    if (feature.createRouter) app.use(`/api/${feature.id}`, feature.createRouter(ctx));
+    if (feature.createJob) jobs.push(feature.createJob(ctx));
   }
 
-  app.get('/api/events', eventsHandler(options.broadcaster ?? createBroadcaster(options.logger)));
+  app.get('/api/events', eventsHandler(broadcaster));
 
   // Anything under /api that reached here is unknown: JSON, never the SPA.
   app.use('/api', (_req, res) => {
@@ -62,8 +96,13 @@ export function createApp(options: AppOptions): Express {
 
   app.use(errorBoundary(options.logger));
 
-  return app;
+  return { app, jobs };
 }
+
+/** Stands in for the admin gate until core has one: nobody is an admin. */
+const placeholderRequireAdmin: RequestHandler = (_req, res) => {
+  sendError(res, 401);
+};
 
 /**
  * Serves the client's index.html with the configured zone injected. Read per

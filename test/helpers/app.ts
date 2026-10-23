@@ -2,10 +2,17 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import type { Express } from 'express';
 import { onTestFinished } from 'vitest';
+import { serverFeatureList } from '../../src/features/registry.server.js';
+import type { ServerFeature } from '../../src/features/types.js';
+import { createApp } from '../../src/server/app.js';
 import type { AppOptions } from '../../src/server/app.js';
 import type { Config } from '../../src/server/config.js';
+import { runMigrations } from '../../src/server/db/migrate.js';
+import { migrationSets } from '../../src/server/db/schema.js';
 import { captureLogger } from './logger.js';
+import { tempDatabase } from './sqlite.js';
 
 /** The fixture SPA build (test/fixtures/client-dist). */
 export const fixtureClientDist = fileURLToPath(
@@ -31,14 +38,27 @@ export function testConfig(overrides: Partial<Config> = {}): Config {
 }
 
 /**
- * Options for createApp: fixture client, test config and an in-memory logger.
- * Override any field. Call inside a test.
+ * Options for createApp: fixture client, test config, an in-memory logger
+ * and a throwaway database migrated for the features given (the registry's
+ * by default). Override any field. Call inside a test.
  */
 export function testAppOptions(overrides: Partial<AppOptions> = {}): AppOptions {
   return {
     clientDist: fixtureClientDist,
     config: testConfig(),
     logger: captureLogger().logger,
+    db: overrides.db ?? migratedTempDatabase(overrides.features ?? serverFeatureList),
     ...overrides,
   };
+}
+
+/** The Express app from createApp(testAppOptions(overrides)), for tests that need nothing else. */
+export function testApp(overrides: Partial<AppOptions> = {}): Express {
+  return createApp(testAppOptions(overrides)).app;
+}
+
+function migratedTempDatabase(features: readonly ServerFeature[]): AppOptions['db'] {
+  const { db } = tempDatabase();
+  runMigrations(db, migrationSets(features), new Date());
+  return db;
 }
