@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { SubmitEvent } from 'react';
+import { PalettePicker } from '../../../client/admin/PalettePicker.js';
 import { readErrorMessage, useAdminSession } from '../../../client/admin/session.js';
 import { readJson } from '../../../client/http.js';
 import { useFeatureData } from '../../../client/useFeatureData.js';
@@ -312,26 +313,13 @@ function SourceFields({
           }}
         />
       </label>
-      <fieldset className="calendar-colors">
-        <legend>Color</legend>
-        <div className="calendar-swatches">
-          {PERSON_COLORS.map((color) => (
-            <label key={color} className="calendar-swatch" title={color}>
-              <input
-                type="radio"
-                name={`${idPrefix}-color`}
-                value={color}
-                checked={values.color === color}
-                onChange={() => {
-                  onChange({ ...values, color });
-                }}
-              />
-              <span className="calendar-swatch-color" style={{ background: `var(--person-${color})` }} />
-              <span className="visually-hidden">{color}</span>
-            </label>
-          ))}
-        </div>
-      </fieldset>
+      <PalettePicker
+        name={`${idPrefix}-color`}
+        value={values.color}
+        onChange={(color) => {
+          onChange({ ...values, color });
+        }}
+      />
       <label className="admin-field calendar-field-url">
         {urlRequired ? 'Secret address' : 'New secret address (leave empty to keep)'}
         <input

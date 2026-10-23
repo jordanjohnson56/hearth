@@ -120,6 +120,22 @@ body {
   cursor: default;
 }
 
+/* A person's avatar fallback (PersonAvatar.tsx): their initial on their color. */
+.person-avatar {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--avatar-size, 2.5rem);
+  height: var(--avatar-size, 2.5rem);
+  border-radius: 50%;
+  color: var(--color-surface);
+  font-size: calc(var(--avatar-size, 2.5rem) * 0.45);
+  font-weight: 700;
+  line-height: 1;
+  user-select: none;
+}
+
 /* Text for screen readers only (a source name beside its color, say). */
 .visually-hidden {
   position: absolute;
