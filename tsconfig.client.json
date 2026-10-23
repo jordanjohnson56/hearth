@@ -1,0 +1,23 @@
+{
+  // Browser half: the Vite root, the pure core, and client halves of features.
+  // No Node types, so `process`, `Buffer` etc. are errors here. Server-only
+  // packages are also banned by ESLint (no-restricted-imports).
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "types": ["vite/client"],
+    "noEmit": true,
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.client.tsbuildinfo"
+  },
+  "include": [
+    "src/client",
+    "src/core",
+    "src/features/**/*.client.ts",
+    "src/features/**/*.client.tsx",
+    "src/features/types.ts"
+  ],
+  "exclude": ["src/**/*.test.ts"]
+}
