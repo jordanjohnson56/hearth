@@ -1,6 +1,6 @@
 # 2. Store instants as INTEGER epoch milliseconds (UTC)
 
-- Status: Proposed (agent recommendation, awaiting human approval on the M0.5 PR)
+- Status: Accepted (approved by Jordan on PR #12, 2026-10-23)
 - Date: 2026-10-23
 - Ticket: #8 (M0.5)
 
