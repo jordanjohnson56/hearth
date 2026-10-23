@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import Database from 'better-sqlite3';
+import { describe, expect, it, onTestFinished } from 'vitest';
 import { tempDatabase } from '../../../test/helpers/sqlite.js';
 import { appliedMigrations, MigrationError, MigrationPlanError, runMigrations } from './migrate.js';
 import type { MigrationSet } from './migrate.js';
@@ -104,6 +105,42 @@ describe('runMigrations', () => {
       name: 'add chore points',
       appliedAt: later,
     });
+  });
+
+  it('skips a migration another process applied after this run listed it as pending', () => {
+    // Two processes on one file (server boot and `npm run seed`): both list
+    // core#1 as pending, the other one applies it first.
+    const { db, path } = tempDatabase();
+    const other = new Database(path);
+    onTestFinished(() => {
+      other.close();
+    });
+    let raced = false;
+    // The other process runs between this run's listing and its first
+    // migration transaction.
+    const racing = new Proxy(db, {
+      get(target, prop) {
+        if (prop === 'transaction' && !raced) {
+          raced = true;
+          runMigrations(other, [{ scope: 'core', migrations: [createPerson] }], BOOT);
+        }
+        const value: unknown = Reflect.get(target, prop, target);
+        return typeof value === 'function' ? (value as () => unknown).bind(target) : value;
+      },
+    });
+
+    const result = runMigrations(racing, sets, BOOT);
+
+    expect(raced).toBe(true);
+    expect(result.applied).toEqual([
+      { scope: 'core', id: 2, name: 'create season' },
+      { scope: 'chores', id: 1, name: 'create chore' },
+    ]);
+    expect(appliedMigrations(db).map((m) => `${m.scope}#${String(m.id)}`)).toEqual([
+      'core#1',
+      'core#2',
+      'chores#1',
+    ]);
   });
 
   describe('refuses to run, changing nothing, when the sets do not match the code’s rules', () => {

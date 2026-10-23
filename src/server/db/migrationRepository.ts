@@ -51,6 +51,13 @@ export function listMigrations(db: Database): MigrationRecord[] {
   }));
 }
 
+/** Whether (scope, id) has a tracking row. The table must exist. */
+export function isMigrationRecorded(db: Database, scope: string, id: number): boolean {
+  return (
+    db.prepare('SELECT 1 FROM migration WHERE scope = ? AND id = ?').get(scope, id) !== undefined
+  );
+}
+
 export function insertMigration(db: Database, record: MigrationRecord): void {
   db.prepare(
     'INSERT INTO migration (scope, id, name, applied_at) VALUES (?, ?, ?, ?)',

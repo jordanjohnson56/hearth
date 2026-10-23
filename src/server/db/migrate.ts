@@ -4,7 +4,12 @@
 // row. It is its own test seam: tests pass sets of their own.
 import type { Database } from 'better-sqlite3';
 import type { FeatureId, Migration } from '../../features/types.js';
-import { ensureMigrationTable, insertMigration, listMigrations } from './migrationRepository.js';
+import {
+  ensureMigrationTable,
+  insertMigration,
+  isMigrationRecorded,
+  listMigrations,
+} from './migrationRepository.js';
 import type { MigrationRecord } from './migrationRepository.js';
 
 /** Which set a migration belongs to. Ids are numbered from 1 within each scope. */
@@ -91,15 +96,24 @@ export function runMigrations(
   const applied: MigrationRef[] = [];
   for (const { scope, migration } of pending) {
     const ref = { scope, id: migration.id, name: migration.name };
+    let ran: boolean;
     try {
-      db.transaction(() => {
-        db.exec(migration.sql);
-        insertMigration(db, { ...ref, appliedAt: now });
-      })();
+      // IMMEDIATE takes the write lock up front, so two processes migrating
+      // the same file (server boot and `npm run seed`) take turns. The
+      // pending list above may be stale by now: re-check inside the lock and
+      // skip what the other process already applied.
+      ran = db
+        .transaction(() => {
+          if (isMigrationRecorded(db, scope, migration.id)) return false;
+          db.exec(migration.sql);
+          insertMigration(db, { ...ref, appliedAt: now });
+          return true;
+        })
+        .immediate();
     } catch (error) {
       throw new MigrationError(ref, error);
     }
-    applied.push(ref);
+    if (ran) applied.push(ref);
   }
   return { applied };
 }
