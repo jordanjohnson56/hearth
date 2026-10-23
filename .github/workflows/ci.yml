@@ -71,3 +71,43 @@ jobs:
       - name: Test
         if: steps.pkg.outputs.exists == 'true'
         run: npm test -- --coverage
+
+  docker:
+    name: Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect application code
+        id: pkg
+        run: |
+          if [ -f package.json ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "No package.json yet, skipping the image build."
+          fi
+
+      # The real Dockerfile, build stage (apt toolchain) included.
+      - name: Build
+        if: steps.pkg.outputs.exists == 'true'
+        run: docker build -t hearth:ci .
+
+      # Runs as uid 1000 like the compose deployment, against a fresh data
+      # directory: boots, migrates, serves the page, and exits 0 on SIGTERM.
+      - name: Smoke test
+        if: steps.pkg.outputs.exists == 'true'
+        run: |
+          data="$(mktemp -d)"
+          sudo chown 1000:1000 "$data"
+          docker run -d --name hearth-ci -p 4400:4400 -v "$data:/data" hearth:ci
+          for _ in $(seq 30); do
+            if curl -fsS -o /dev/null http://127.0.0.1:4400/; then ok=1; break; fi
+            sleep 1
+          done
+          if [ "${ok:-}" != 1 ]; then docker logs hearth-ci; exit 1; fi
+          sudo test -f "$data/hearth.db"
+          docker stop -t 10 hearth-ci
+          docker logs hearth-ci
+          code="$(docker inspect -f '{{.State.ExitCode}}' hearth-ci)"
+          test "$code" = 0

@@ -1,0 +1,10 @@
+{
+  // Solution file: editors and `tsc -b` (npm run typecheck) see the three
+  // projects below. Each is type-checked on its own settings.
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.server.json" },
+    { "path": "./tsconfig.client.json" },
+    { "path": "./tsconfig.node.json" }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  // Emits the production server to dist/ (dist/server/main.js is the
+  // entrypoint; vite build writes the client to dist/client). Tests excluded.
+  "extends": "./tsconfig.server.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "rootDir": "src",
+    "outDir": "dist",
+    "sourceMap": true,
+    "tsBuildInfoFile": null
+  },
+  "include": ["src/server", "src/core", "src/features"],
+  "exclude": [
+    "src/**/*.test.ts",
+    "src/**/*.client.ts",
+    "src/**/*.client.tsx"
+  ]
+}

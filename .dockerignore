@@ -1,0 +1,26 @@
+# Keep the build context to what the image needs. Never send data, secrets,
+# local dependencies or git history to the Docker daemon.
+.git
+.github
+.githooks
+.claude
+.agents
+node_modules
+dist
+coverage
+data
+.env
+.env.*
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.ics
+avatars
+docs
+scripts
+test
+Dockerfile
+docker-compose.yml
+.dockerignore
+README.md

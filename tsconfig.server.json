@@ -1,0 +1,17 @@
+{
+  // Node half: server, pure core, server halves of features, and all tests.
+  // No DOM lib. Client halves (*.client.ts/tsx) and src/client are excluded,
+  // so browser code cannot be type-checked as server code and vice versa.
+  // @types/react is still resolvable for `import type` (the feature contract).
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "types": ["node"],
+    "noEmit": true,
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.server.tsbuildinfo"
+  },
+  "include": ["src/server", "src/core", "src/features", "test"],
+  "exclude": ["src/**/*.client.ts", "src/**/*.client.tsx"]
+}

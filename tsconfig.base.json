@@ -1,0 +1,17 @@
+{
+  // Shared compiler options. Every project extends this; none of these may be
+  // relaxed without an ADR under docs/adr/.
+  "compilerOptions": {
+    "target": "ES2023",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "verbatimModuleSyntax": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "isolatedModules": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true
+  }
+}

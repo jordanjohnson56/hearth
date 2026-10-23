@@ -1,0 +1,18 @@
+/*
+ * Kiosk layer (DESIGN section 8): behavior that only matters on the
+ * wall-mounted tablet. It pairs with the meta tags in index.html
+ * (viewport-fit=cover, apple-mobile-web-app-capable). Layout CSS reads the
+ * insets through these properties and never names a device. Elsewhere the
+ * insets are 0 and none of this changes anything.
+ */
+
+:root {
+  --inset-top: env(safe-area-inset-top, 0px);
+  --inset-right: env(safe-area-inset-right, 0px);
+  --inset-bottom: env(safe-area-inset-bottom, 0px);
+  --inset-left: env(safe-area-inset-left, 0px);
+
+  /* Keep iOS from inflating text on rotation. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
