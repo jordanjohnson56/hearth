@@ -1,6 +1,8 @@
 import { clientFeatureList } from '../features/registry.client.js';
+import { useLiveUpdates } from './liveUpdates.js';
 
 export function App() {
+  useLiveUpdates();
   return (
     <>
       <main>

@@ -3,12 +3,20 @@ import express from 'express';
 import type { ErrorRequestHandler, Express, Response } from 'express';
 import { serverFeatureList } from '../features/registry.server.js';
 import type { ServerFeature } from '../features/types.js';
+import { createBroadcaster } from './broadcaster.js';
+import type { Broadcaster } from './broadcaster.js';
+import { eventsHandler } from './events.js';
 
 export interface AppOptions {
   /** Directory holding the built client (index.html plus assets). */
   clientDist: string;
   /** Features to mount. Defaults to the server registry; tests pass their own. */
   features?: readonly ServerFeature[];
+  /**
+   * Live-update hub behind GET /api/events. The entrypoint passes the one it
+   * hands to jobs and writers; defaults to a private one nothing publishes to.
+   */
+  broadcaster?: Broadcaster;
 }
 
 /** Builds the Hearth HTTP app. Does not listen; the entrypoint does. */
@@ -19,6 +27,8 @@ export function createApp(options: AppOptions): Express {
   for (const feature of options.features ?? serverFeatureList) {
     if (feature.router) app.use(`/api/${feature.id}`, feature.router);
   }
+
+  app.get('/api/events', eventsHandler(options.broadcaster ?? createBroadcaster()));
 
   // Anything under /api that reached here is unknown: JSON, never the SPA.
   app.use('/api', (_req, res) => {
