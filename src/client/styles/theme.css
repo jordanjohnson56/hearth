@@ -1,0 +1,49 @@
+/*
+ * Theme: every color the app uses, as custom properties, one set per theme.
+ * Components use these tokens only; they never write a color literal.
+ *
+ * M0 picks the theme from the device (prefers-color-scheme), light by
+ * default. M1 switches by the clock in the configured zone by setting
+ * data-theme="light" or "dark" on <html>, which overrides the device here.
+ */
+
+:root {
+  color-scheme: light;
+  --color-bg: #f4f1ec;
+  --color-surface: #fffdf9;
+  --color-surface-raised: #ebe5dc;
+  --color-border: #d3cabd;
+  --color-text: #1f1b16;
+  --color-text-muted: #5c5348;
+  --color-accent: #a8481f;
+  --color-on-accent: #fffdf9;
+  --color-focus: #1f5fbf;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --color-bg: #11151c;
+    --color-surface: #1a2029;
+    --color-surface-raised: #212936;
+    --color-border: #344052;
+    --color-text: #e8edf4;
+    --color-text-muted: #9eabbe;
+    --color-accent: #ff9466;
+    --color-on-accent: #11151c;
+    --color-focus: #7cb4ff;
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --color-bg: #11151c;
+  --color-surface: #1a2029;
+  --color-surface-raised: #212936;
+  --color-border: #344052;
+  --color-text: #e8edf4;
+  --color-text-muted: #9eabbe;
+  --color-accent: #ff9466;
+  --color-on-accent: #11151c;
+  --color-focus: #7cb4ff;
+}

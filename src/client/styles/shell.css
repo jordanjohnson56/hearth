@@ -1,0 +1,223 @@
+/*
+ * The app shell: header, scrolling main region, bottom nav, and the Home tile
+ * grid. Layout rules from DESIGN section 8: no device sizes anywhere, no
+ * fixed widths or heights on containers, 100dvh for the full-height shell,
+ * rem/clamp() for type, and touch targets of at least 44px (a rule for a
+ * class of device, so the one px value that is allowed).
+ */
+
+:root {
+  --touch-min: 44px;
+  --space-1: 0.5rem;
+  --space-2: 1rem;
+  --space-3: clamp(1rem, 0.6rem + 1.2vw, 1.5rem);
+  --radius: 0.875rem;
+
+  /* Time and date are shown at the same size. */
+  --clock-size: clamp(1.25rem, 0.9rem + 1.6vw, 2.25rem);
+
+  /* Tile grid: a column is at least --tile-min wide; see the @container rule. */
+  --tile-min: 18rem;
+  --tile-gap: var(--space-2);
+  --tile-min-height: 9rem;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.shell {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  height: 100dvh;
+}
+
+/* Header */
+
+.shell-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-2);
+  padding: calc(var(--space-1) + var(--inset-top)) calc(var(--space-3) + var(--inset-right))
+    var(--space-1) calc(var(--space-3) + var(--inset-left));
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.clock {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 0.75em;
+  margin: 0;
+  min-width: 0;
+  font-size: var(--clock-size);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.clock-part {
+  white-space: nowrap;
+}
+
+.admin-button,
+.link-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--touch-min);
+  min-height: var(--touch-min);
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: calc(var(--radius) / 1.5);
+  background: var(--color-surface-raised);
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: 1rem;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+/* Main region: the only part that scrolls. */
+
+.shell-main {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-3) calc(var(--space-3) + var(--inset-right)) var(--space-3)
+    calc(var(--space-3) + var(--inset-left));
+  container: main / inline-size;
+}
+
+/* Home tile grid */
+
+.home-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--tile-min)), 1fr));
+  grid-auto-rows: minmax(var(--tile-min-height), 1fr);
+  gap: var(--tile-gap);
+  min-height: 100%;
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+.tile[data-size='wide'] {
+  grid-column: span 2;
+}
+
+/*
+ * Clamp: below two columns a span-2 tile would add an implicit column and
+ * overflow, so a wide tile takes the full row instead. 37rem is where the
+ * grid drops to one column: 2 x --tile-min + --tile-gap (18rem + 18rem +
+ * 1rem). Container queries cannot read custom properties; update together.
+ */
+@container main (width < 37rem) {
+  .tile[data-size='wide'] {
+    grid-column: 1 / -1;
+  }
+}
+
+.tile-ghost {
+  align-items: center;
+  justify-content: center;
+  border-style: dashed;
+  border-width: 2px;
+  background: transparent;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+/* Empty state for pages without content yet */
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 100%;
+  padding: var(--space-3);
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.empty-state-title {
+  margin: 0;
+  color: var(--color-text);
+  font-size: clamp(1.5rem, 1.1rem + 1.5vw, 2.25rem);
+}
+
+.empty-state p {
+  margin: 0;
+  max-width: 40ch;
+}
+
+/* Bottom nav */
+
+.bottom-nav {
+  display: flex;
+  padding: 0 var(--inset-right) var(--inset-bottom) var(--inset-left);
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+}
+
+.nav-item {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.125rem;
+  min-width: 0;
+  min-height: max(var(--touch-min), 3.75rem);
+  padding: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: clamp(0.875rem, 0.8rem + 0.3vw, 1rem);
+  text-decoration: none;
+}
+
+.nav-icon {
+  font-size: 1.375em;
+  line-height: 1;
+}
+
+.nav-item[aria-current='page'] {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.nav-item[aria-current='page'] .nav-icon {
+  color: var(--color-accent);
+}
