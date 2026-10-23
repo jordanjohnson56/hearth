@@ -2,8 +2,11 @@
 // and validates the bootstrap config, refuses to start on any problem, and
 // hands config and logger to the app factory.
 import { fileURLToPath } from 'node:url';
+import type Database from 'better-sqlite3';
+import { serverFeatureList } from '../features/registry.server.js';
 import { createApp } from './app.js';
 import { loadConfig } from './config.js';
+import { prepareDatabase } from './db/database.js';
 import { createLogger } from './logger.js';
 
 const result = loadConfig(process.env, { cwd: process.cwd() });
@@ -21,6 +24,21 @@ if (!result.ok) {
 
 const { config } = result;
 const logger = createLogger(config.logLevel);
+
+// Migrate before listening. A failed migration has rolled back; refuse to
+// start rather than serve against a half-migrated schema.
+let db: Database.Database;
+try {
+  const prepared = prepareDatabase(config.dataDir, serverFeatureList, new Date());
+  db = prepared.db;
+  logger.info(
+    { applied: prepared.applied.map((m) => `${m.scope}#${String(m.id)} ${m.name}`) },
+    'database ready',
+  );
+} catch (error) {
+  logger.fatal({ err: error }, 'cannot prepare the database');
+  process.exit(1);
+}
 
 // Built layout: dist/server/main.js next to dist/client (vite build).
 // Under `npm run dev` this points at src/client, which Vite serves instead;
@@ -43,6 +61,9 @@ const server = app.listen(config.port, (error?: Error) => {
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.once(signal, () => {
     logger.info({ signal }, 'shutting down');
-    server.close(() => process.exit(0));
+    server.close(() => {
+      db.close();
+      process.exit(0);
+    });
   });
 }
