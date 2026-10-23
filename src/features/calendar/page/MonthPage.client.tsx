@@ -3,8 +3,9 @@ import { followLink, navigate, useRoute } from '../../../client/router.js';
 import { useFeatureData } from '../../../client/useFeatureData.js';
 import { useNow } from '../../../client/useNow.js';
 import { configuredZone } from '../../../client/zone.js';
-import { formatClock } from '../../../core/clock.js';
-import { localDateOf } from '../../../core/localDateText.js';
+import { formatTime } from '../../../core/clock.js';
+import { addDays, localDateOf } from '../../../core/localDateText.js';
+import { fetchEvents } from '../api.client.js';
 import {
   addMonths,
   eventsByDate,
@@ -17,7 +18,8 @@ import {
   yearMonthOf,
 } from '../monthGrid.js';
 import type { GridCell, YearMonth } from '../monthGrid.js';
-import type { CalendarEventWire, EventsResponse, SourceSummaryWire } from '../types.js';
+import { withSources } from '../wireEvents.js';
+import type { SourcedEvent } from '../wireEvents.js';
 import '../month.css';
 
 const zone = configuredZone();
@@ -48,14 +50,7 @@ function titleOf(target: YearMonth): string {
 }
 
 function timeOf(epochMs: number): string {
-  return formatClock(new Date(epochMs), zone).time;
-}
-
-async function fetchEvents(from: string, to: string, signal: AbortSignal): Promise<EventsResponse> {
-  const query = new URLSearchParams({ from, to });
-  const res = await fetch(`/api/calendar/events?${query.toString()}`, { signal });
-  if (!res.ok) throw new Error(`Could not load events (${String(res.status)})`);
-  return (await res.json()) as EventsResponse;
+  return formatTime(new Date(epochMs), zone);
 }
 
 /**
@@ -89,8 +84,7 @@ export function MonthPage() {
   const [selected, setSelected] = useState<string | null>(null);
   const open = selected !== null && cells.some((cell) => cell.date === selected) ? selected : null;
 
-  const byDate = loaded && data ? eventsByDate(data.events, zone) : new Map<string, CalendarEventWire[]>();
-  const sources = new Map<number, SourceSummaryWire>((data?.sources ?? []).map((source) => [source.id, source]));
+  const byDate = loaded && data ? eventsByDate(withSources(data), zone) : new Map<string, SourcedEvent[]>();
   const title = titleOf(shown);
 
   const goTo = (target: YearMonth) => {
@@ -164,7 +158,6 @@ export function MonthPage() {
                 key={cell.date}
                 cell={cell}
                 events={byDate.get(cell.date) ?? []}
-                sources={sources}
                 isToday={cell.date === today}
                 isOpen={cell.date === open}
                 onOpen={() => { setSelected(cell.date === open ? null : cell.date); }}
@@ -176,7 +169,6 @@ export function MonthPage() {
           <DayPanel
             date={open}
             events={byDate.get(open) ?? []}
-            sources={sources}
             onClose={() => { setSelected(null); }}
           />
         )}
@@ -185,22 +177,19 @@ export function MonthPage() {
   );
 }
 
-function colorOf(sources: ReadonlyMap<number, SourceSummaryWire>, event: CalendarEventWire): string {
-  const token = sources.get(event.sourceId)?.color ?? 'slate';
-  return `var(--person-${token})`;
+function colorOf(event: SourcedEvent): string {
+  return `var(--person-${event.source.color})`;
 }
 
 function DayCell({
   cell,
   events,
-  sources,
   isToday,
   isOpen,
   onOpen,
 }: {
   cell: GridCell;
-  events: readonly CalendarEventWire[];
-  sources: ReadonlyMap<number, SourceSummaryWire>;
+  events: readonly SourcedEvent[];
   isToday: boolean;
   isOpen: boolean;
   onOpen: () => void;
@@ -220,7 +209,7 @@ function DayCell({
       <span className="month-cell-day">{Number(cell.date.slice(8))}</span>
       <span className="month-cell-pills">
         {shown.map((event) => (
-          <span key={event.id} className="month-pill" style={{ borderColor: colorOf(sources, event) }}>
+          <span key={event.id} className="month-pill" style={{ borderColor: colorOf(event) }}>
             {event.kind === 'timed' && <span className="month-pill-time">{timeOf(event.startAt)}</span>}
             <span className="month-pill-title">{event.title}</span>
           </span>
@@ -232,12 +221,12 @@ function DayCell({
 }
 
 /** When an event happens, as the panel reads it from `date`'s point of view. */
-function whenOf(event: CalendarEventWire, date: string): string {
+function whenOf(event: SourcedEvent, date: string): string {
   if (event.kind === 'allDay') {
-    const lastDate = new Date(atUtcMidnight(event.endDate).getTime() - 1);
-    const multiDay = event.endDate > event.startDate && lastDate.toISOString().slice(0, 10) !== event.startDate;
-    if (!multiDay) return 'All day';
-    return `All day, ${shortDateFormat.format(atUtcMidnight(event.startDate))} to ${shortDateFormat.format(lastDate)}`;
+    // The end is exclusive: the last day shown is the one before it.
+    const lastDate = addDays(event.endDate, -1);
+    if (lastDate <= event.startDate) return 'All day';
+    return `All day, ${shortDateFormat.format(atUtcMidnight(event.startDate))} to ${shortDateFormat.format(atUtcMidnight(lastDate))}`;
   }
   const start = new Date(event.startAt);
   const end = new Date(event.endAt);
@@ -253,12 +242,10 @@ function whenOf(event: CalendarEventWire, date: string): string {
 function DayPanel({
   date,
   events,
-  sources,
   onClose,
 }: {
   date: string;
-  events: readonly CalendarEventWire[];
-  sources: ReadonlyMap<number, SourceSummaryWire>;
+  events: readonly SourcedEvent[];
   onClose: () => void;
 }) {
   const heading = longDateFormat.format(atUtcMidnight(date));
@@ -281,11 +268,11 @@ function DayPanel({
       ) : (
         <ul className="month-day-list">
           {events.map((event) => (
-            <li key={event.id} className="month-day-event" style={{ borderColor: colorOf(sources, event) }}>
+            <li key={event.id} className="month-day-event" style={{ borderColor: colorOf(event) }}>
               <span className="month-day-when">{whenOf(event, date)}</span>
               <span className="month-day-name">{event.title}</span>
               {event.location !== null && <span className="month-day-where">{event.location}</span>}
-              <span className="month-day-source">{sources.get(event.sourceId)?.label ?? 'Calendar'}</span>
+              <span className="month-day-source">{event.source.label}</span>
             </li>
           ))}
         </ul>

@@ -3,26 +3,18 @@ import { followLink } from '../../../client/router.js';
 import { useFeatureData } from '../../../client/useFeatureData.js';
 import { useNow } from '../../../client/useNow.js';
 import { configuredZone } from '../../../client/zone.js';
+import { formatTime } from '../../../core/clock.js';
 import { addDays, localDateOf } from '../../../core/localDateText.js';
+import { fetchEvents } from '../api.client.js';
 import { stalenessLine, todaysEvents } from '../dayAtAGlance.js';
 import type { GlanceEvent, GlanceTiming } from '../dayAtAGlance.js';
-import type { EventsResponse } from '../types.js';
 import '../dayAtAGlance.css';
 
 const zone = configuredZone();
 
-// The same options as the header clock (src/core/clock.ts formatClock), so
-// "3:00 PM" reads the same in the tile and above it.
-const timeFormat = new Intl.DateTimeFormat(undefined, {
-  timeZone: zone,
-  hour: 'numeric',
-  minute: '2-digit',
-});
-
-async function fetchEvents(from: string, to: string, signal: AbortSignal): Promise<EventsResponse> {
-  const res = await fetch(`/api/calendar/events?from=${from}&to=${to}`, { signal });
-  if (!res.ok) throw new Error(`Could not load the calendar (${String(res.status)})`);
-  return (await res.json()) as EventsResponse;
+/** Like the header clock, so "3:00 PM" reads the same in the tile and above it. */
+function timeOf(instant: Date): string {
+  return formatTime(instant, zone);
 }
 
 /**
@@ -105,19 +97,19 @@ function EventTime({ timing }: { timing: GlanceTiming }) {
     case 'within':
       return (
         <time className="glance-event-time" dateTime={start.toISOString()}>
-          {timeFormat.format(start)}
+          {timeOf(start)}
         </time>
       );
     case 'startsToday':
       return (
         <time className="glance-event-time" dateTime={start.toISOString()}>
-          from {timeFormat.format(start)}
+          from {timeOf(start)}
         </time>
       );
     case 'endsToday':
       return (
         <time className="glance-event-time" dateTime={end.toISOString()}>
-          until {timeFormat.format(end)}
+          until {timeOf(end)}
         </time>
       );
     case 'coversToday':

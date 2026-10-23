@@ -2,9 +2,7 @@
 // zone are parameters, as in the core.
 import { addMonths, endOfMonth, localDate, startOfMonth } from '../../core/time.js';
 import type { LocalDate } from '../../core/time.js';
-
-export const MONTHS_BACK = 3;
-export const MONTHS_AHEAD = 12;
+import { MONTHS_AHEAD, MONTHS_BACK } from './windowSize.js';
 
 /** Inclusive local dates. */
 export interface DateWindow {

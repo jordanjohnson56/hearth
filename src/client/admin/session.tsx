@@ -3,6 +3,7 @@
 // and the provider sits above the router so navigating keeps it.
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
+import { readJson } from '../http.js';
 
 export type UnlockResult = { ok: true } | { ok: false; message: string };
 
@@ -32,7 +33,7 @@ export function AdminSessionProvider({ children }: { children: ReactNode }) {
       body: JSON.stringify({ pin }),
     });
     if (!res.ok) return { ok: false, message: await readErrorMessage(res) };
-    const body = (await res.json()) as { token: string };
+    const body = await readJson<{ token: string }>(res);
     setToken(body.token);
     return { ok: true };
   }, []);
@@ -78,7 +79,7 @@ export function useAdminSession(): AdminSession {
  */
 export async function readErrorMessage(res: Response): Promise<string> {
   try {
-    const body = (await res.json()) as { message?: unknown };
+    const body = await readJson<{ message?: unknown }>(res);
     if (typeof body.message === 'string') return body.message;
   } catch {
     // Not JSON: fall through to the generic line.

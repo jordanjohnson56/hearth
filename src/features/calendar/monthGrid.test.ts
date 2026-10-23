@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  MONTHS_AHEAD,
-  MONTHS_BACK,
   addMonths,
   eventsByDate,
   isMonthLoaded,
@@ -11,7 +9,6 @@ import {
   parseMonthPath,
   splitPills,
 } from './monthGrid.js';
-import { MONTHS_AHEAD as POLL_MONTHS_AHEAD, MONTHS_BACK as POLL_MONTHS_BACK } from './window.js';
 import type { CalendarEventWire } from './types.js';
 
 describe('monthGrid', () => {
@@ -144,11 +141,6 @@ describe('loadedMonths', () => {
     const late = new Date('2026-11-01T03:00:00Z');
     expect(loadedMonths(late, CHICAGO).first).toEqual({ year: 2026, month: 7 });
     expect(loadedMonths(late, 'UTC').first).toEqual({ year: 2026, month: 8 });
-  });
-
-  it('matches the server poll window constants', () => {
-    expect(MONTHS_BACK).toBe(POLL_MONTHS_BACK);
-    expect(MONTHS_AHEAD).toBe(POLL_MONTHS_AHEAD);
   });
 });
 

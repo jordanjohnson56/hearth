@@ -3,6 +3,7 @@
 // (validating the settings) and the browser (applying them every minute),
 // so this file stays on Intl: the Temporal polyfill must not reach the
 // client bundle (test/clientBundle.test.ts).
+import { intlParts } from './intlParts.js';
 
 export type Theme = 'light' | 'dark';
 
@@ -62,15 +63,8 @@ export function isThemeTimes(value: unknown): value is ThemeTimes {
  * for an unknown zone, like the clock does.
  */
 export function wallTime(instant: Date, zone: string): TimeOfDay {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: zone,
-    hour: '2-digit',
-    minute: '2-digit',
-    hourCycle: 'h23',
-  }).formatToParts(instant);
-  const part = (type: 'hour' | 'minute') =>
-    Number(parts.find((candidate) => candidate.type === type)?.value);
-  return { hour: part('hour'), minute: part('minute') };
+  const part = intlParts(instant, zone, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+  return { hour: Number(part('hour')), minute: Number(part('minute')) };
 }
 
 /**

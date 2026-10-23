@@ -44,7 +44,9 @@ export function useThemeTimes(): ThemeTimes {
 /**
  * Reloads the switch times from the server. A failed or malformed answer
  * leaves the times in use alone: the wall keeps switching on the last
- * known pair (or the defaults) until the next backstop.
+ * known pair (or the defaults) until the next backstop. Unlike readJson
+ * (http.ts), the body is checked first: a malformed pair would throw on
+ * every minute tick, so this one response is not taken on trust.
  */
 export async function fetchThemeTimes(): Promise<void> {
   try {

@@ -1,12 +1,14 @@
 // What the Day at a glance tile shows, computed from the events route's
 // response: pure, so the tile component only renders. Client-safe: local
 // dates come from src/core/localDateText.ts, never src/core/time.ts.
-import { addDays, localDateOf } from '../../core/localDateText.js';
+import { localDateOf } from '../../core/localDateText.js';
 import type { PersonColor } from '../../core/personColor.js';
 import type { CalendarEventWire, EventsResponse } from './types.js';
+import { localDaysOf, withSources } from './wireEvents.js';
+import type { SourcedEvent } from './wireEvents.js';
 
-type AllDayWire = Extract<CalendarEventWire, { kind: 'allDay' }>;
-type TimedWire = Extract<CalendarEventWire, { kind: 'timed' }>;
+type AllDayWire = Extract<SourcedEvent, { kind: 'allDay' }>;
+type TimedWire = Extract<SourcedEvent, { kind: 'timed' }>;
 
 /**
  * How a timed event's span sits against the day shown: `within` starts and
@@ -41,43 +43,29 @@ export interface GlanceEvent {
  */
 export function todaysEvents(response: EventsResponse, now: Date, zone: string): GlanceEvent[] {
   const today = localDateOf(now, zone);
-  const sources = new Map(response.sources.map((source) => [source.id, source]));
   const allDay: AllDayWire[] = [];
   const timed: TimedWire[] = [];
-  for (const event of response.events) {
-    const days = daysOf(event, zone);
+  for (const event of withSources(response)) {
+    const days = localDaysOf(event, zone);
     if (!(days.first <= today && today <= days.last)) continue;
     if (event.kind === 'allDay') allDay.push(event);
     else timed.push(event);
   }
   allDay.sort((a, b) => a.startDate.localeCompare(b.startDate));
   timed.sort((a, b) => a.startAt - b.startAt);
-  return [...allDay, ...timed].flatMap((event) => {
-    const source = sources.get(event.sourceId);
-    if (source === undefined) return [];
-    return [
-      {
-        id: event.id,
-        title: event.title,
-        color: source.color,
-        sourceLabel: source.label,
-        over: isOver(event, now, today),
-        timing: timingOf(event, today, zone),
-      },
-    ];
-  });
-}
-
-/** The local days a timed event occupies: its end is exclusive, so the last one holds `endAt - 1 ms`. */
-function daysOf(event: CalendarEventWire, zone: string): { first: string; last: string } {
-  if (event.kind === 'allDay') return { first: event.startDate, last: addDays(event.endDate, -1) };
-  const lastInstant = Math.max(event.startAt, event.endAt - 1);
-  return { first: localDateOf(new Date(event.startAt), zone), last: localDateOf(new Date(lastInstant), zone) };
+  return [...allDay, ...timed].map((event) => ({
+    id: event.id,
+    title: event.title,
+    color: event.source.color,
+    sourceLabel: event.source.label,
+    over: isOver(event, now, today),
+    timing: timingOf(event, today, zone),
+  }));
 }
 
 function timingOf(event: CalendarEventWire, today: string, zone: string): GlanceTiming {
   if (event.kind === 'allDay') return { kind: 'allDay' };
-  const { first, last } = daysOf(event, zone);
+  const { first, last } = localDaysOf(event, zone);
   const span: TimedSpan =
     first === today ? (last === today ? 'within' : 'startsToday') : last === today ? 'endsToday' : 'coversToday';
   return { kind: 'timed', span, startAt: event.startAt, endAt: event.endAt };

@@ -5,8 +5,10 @@
 // src/core/time.ts (Temporal); the two agree on every date because both
 // are the proleptic Gregorian calendar.
 
-import { addDays, localDateOf } from '../../core/localDateText.js';
+import { datesSpanning, formatLocalDate, localDateOf, partsOf } from '../../core/localDateText.js';
 import type { CalendarEventWire } from './types.js';
+import { MONTHS_AHEAD, MONTHS_BACK } from './windowSize.js';
+import { localDaysOf } from './wireEvents.js';
 
 /** One square of the grid. */
 export interface GridCell {
@@ -29,12 +31,8 @@ const DAYS_PER_WEEK = 7;
  */
 const MIN_ROWS = 5;
 
-function pad(value: number, width: number): string {
-  return String(value).padStart(width, '0');
-}
-
 function formatUtcDate(date: Date): string {
-  return `${pad(date.getUTCFullYear(), 4)}-${pad(date.getUTCMonth() + 1, 2)}-${pad(date.getUTCDate(), 2)}`;
+  return formatLocalDate(date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate());
 }
 
 /**
@@ -58,42 +56,20 @@ export function monthGrid(year: number, month: number): GridCell[] {
 const CELL_PILL_CAP = 3;
 
 /**
- * The local dates an event belongs on. An all-day event covers its dates up
- * to the exclusive end; a timed one covers every local date it touches in
- * `zone`, except that ending exactly at midnight does not touch the next day.
+ * Every event under each local date it covers (localDaysOf), each day's
+ * list ordered all-day first (in the order given), then timed by start. A
+ * multi-day event is listed under every one of its days.
  */
-function datesOf(event: CalendarEventWire, zone: string): string[] {
-  const dates: string[] = [];
-  let first: string;
-  let last: string;
-  if (event.kind === 'allDay') {
-    first = event.startDate;
-    last = addDays(event.endDate, -1);
-  } else {
-    first = localDateOf(new Date(event.startAt), zone);
-    last = localDateOf(new Date(Math.max(event.startAt, event.endAt - 1)), zone);
-  }
-  for (let date = first; date <= last; date = addDays(date, 1)) dates.push(date);
-  return dates;
-}
-
-/**
- * Every event under each local date it covers, each day's list ordered
- * all-day first (in the order given), then timed by start. A multi-day
- * event is listed under every one of its days.
- */
-export function eventsByDate(
-  events: readonly CalendarEventWire[],
-  zone: string,
-): Map<string, CalendarEventWire[]> {
-  const byDate = new Map<string, CalendarEventWire[]>();
+export function eventsByDate<E extends CalendarEventWire>(events: readonly E[], zone: string): Map<string, E[]> {
+  const byDate = new Map<string, E[]>();
   const ordered = [...events].sort((a, b) => {
     if (a.kind !== b.kind) return a.kind === 'allDay' ? -1 : 1;
     if (a.kind === 'timed' && b.kind === 'timed') return a.startAt - b.startAt;
     return 0;
   });
   for (const event of ordered) {
-    for (const date of datesOf(event, zone)) {
+    const { first, last } = localDaysOf(event, zone);
+    for (const date of datesSpanning(first, last)) {
       const list = byDate.get(date);
       if (list) list.push(event);
       else byDate.set(date, [event]);
@@ -103,18 +79,9 @@ export function eventsByDate(
 }
 
 /** The first three of a day's events, and how many the cell leaves out. */
-export function splitPills(events: readonly CalendarEventWire[]): {
-  shown: CalendarEventWire[];
-  more: number;
-} {
+export function splitPills<E extends CalendarEventWire>(events: readonly E[]): { shown: E[]; more: number } {
   return { shown: events.slice(0, CELL_PILL_CAP), more: Math.max(0, events.length - CELL_PILL_CAP) };
 }
-
-// The storage window, in months: the same numbers as window.ts
-// `pollWindow` (which the client cannot import: it uses the Temporal
-// polyfill). monthGrid.test.ts asserts the two pairs stay equal.
-export const MONTHS_BACK = 3;
-export const MONTHS_AHEAD = 12;
 
 /** `base` plus `months` (may be negative). */
 export function addMonths(base: YearMonth, months: number): YearMonth {
@@ -124,7 +91,7 @@ export function addMonths(base: YearMonth, months: number): YearMonth {
 
 /** The month a `YYYY-MM-DD` date falls in. */
 export function yearMonthOf(date: string): YearMonth {
-  const [year, month] = date.split('-').map(Number) as [number, number];
+  const { year, month } = partsOf(date);
   return { year, month };
 }
 

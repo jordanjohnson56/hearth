@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import type { SubmitEvent } from 'react';
 import { readErrorMessage, useAdminSession } from '../../../client/admin/session.js';
+import { readJson } from '../../../client/http.js';
 import { useFeatureData } from '../../../client/useFeatureData.js';
 import { configuredZone } from '../../../client/zone.js';
+import { formatTime } from '../../../core/clock.js';
 import { PERSON_COLORS } from '../../../core/personColor.js';
 import type { PersonColor } from '../../../core/personColor.js';
 import type { FetchFailure, SourceWire, SourcesResponse } from '../types.js';
@@ -13,7 +15,7 @@ const zone = configuredZone();
 async function fetchSources(signal: AbortSignal): Promise<SourcesResponse> {
   const res = await fetch('/api/calendar/sources', { signal });
   if (!res.ok) throw new Error(`Could not load calendars (${String(res.status)})`);
-  return (await res.json()) as SourcesResponse;
+  return readJson<SourcesResponse>(res);
 }
 
 /**
@@ -190,7 +192,7 @@ function AddSource({ onAdded }: { onAdded: () => void }) {
       })
       .then(async (res) => {
         if (res.status === 201) {
-          const source = (await res.json()) as SourceWire;
+          const source = await readJson<SourceWire>(res);
           setTone('info');
           setMessage(
             source.lastError === null
@@ -364,14 +366,10 @@ function describeFailure(failure: FetchFailure): string {
   return FAILURE_TEXT[failure as keyof typeof FAILURE_TEXT];
 }
 
-const instantFormat = new Intl.DateTimeFormat(undefined, {
-  timeZone: zone,
-  month: 'short',
-  day: 'numeric',
-  hour: 'numeric',
-  minute: '2-digit',
-});
+const dayFormat = new Intl.DateTimeFormat(undefined, { timeZone: zone, month: 'short', day: 'numeric' });
 
+/** `Oct 23, 3:00 PM`: the time half as the header clock shows it. */
 function formatInstant(epochMs: number): string {
-  return instantFormat.format(new Date(epochMs));
+  const instant = new Date(epochMs);
+  return `${dayFormat.format(instant)}, ${formatTime(instant, zone)}`;
 }
