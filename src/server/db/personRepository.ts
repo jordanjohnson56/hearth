@@ -1,8 +1,10 @@
 // Repository for the person table: the only module that holds SQL about
 // people. Display names are unique ignoring case (person_display_name index).
 import type { Database } from 'better-sqlite3';
+import type { PersonWire } from '../../core/person.js';
 import { isPersonColor } from '../../core/personColor.js';
 import type { PersonColor } from '../../core/personColor.js';
+import { withUniqueName } from './uniqueName.js';
 
 export interface Person {
   id: number;
@@ -51,6 +53,10 @@ function toPerson(row: PersonRow): Person {
     avatarPath: row.avatar_path,
     icon: row.icon,
   };
+}
+
+export function toPersonWire(person: Person): PersonWire {
+  return { id: person.id, displayName: person.displayName, color: person.color, icon: person.icon };
 }
 
 /** Everyone, in the order they were created. */
@@ -121,16 +127,5 @@ function checkColor(color: string): void {
 }
 
 function withNameCheck<T>(write: () => T): T {
-  try {
-    return write();
-  } catch (err) {
-    if (
-      err instanceof Error &&
-      (err as { code?: unknown }).code === 'SQLITE_CONSTRAINT_UNIQUE' &&
-      err.message.includes('person.display_name')
-    ) {
-      throw new DuplicateDisplayNameError();
-    }
-    throw err;
-  }
+  return withUniqueName(write, 'person.display_name', () => new DuplicateDisplayNameError());
 }

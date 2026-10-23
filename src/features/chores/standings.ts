@@ -6,7 +6,7 @@ import type { Completion } from './completion.js';
 import { compareNames } from './pool.js';
 
 /** The half-open instant range [start, end). */
-export interface Window {
+export interface TimeWindow {
   start: Date;
   end: Date;
 }
@@ -22,7 +22,7 @@ export interface Standing {
  * The week containing `now` in `zone`: Monday 00:00 local to the next
  * Monday 00:00 local, so a DST week is 167 or 169 hours long.
  */
-export function weekWindow(now: Date, zone: string): Window {
+export function weekWindow(now: Date, zone: string): TimeWindow {
   const start = weekStart(now, zone);
   return { start, end: firstInstantOf(addDays(localDate(start, zone), 7), zone) };
 }
@@ -35,7 +35,7 @@ export function weekWindow(now: Date, zone: string): Window {
 export function standings(
   people: readonly { id: number; displayName: string }[],
   completions: readonly Pick<Completion, 'personId' | 'completedAt' | 'pointsAwarded' | 'voided'>[],
-  window: Window,
+  window: TimeWindow,
 ): Standing[] {
   const points = new Map(people.map((person) => [person.id, 0]));
   for (const completion of completions) {

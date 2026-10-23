@@ -3,9 +3,9 @@
 // (completionRepository.ts); the router (feature.server.ts) maps the results
 // to HTTP and gates them behind the bearer.
 import type { Database } from 'better-sqlite3';
-import { getPerson, listPeople } from '../../server/db/personRepository.js';
-import { toPersonWire } from '../../server/people.js';
+import { getPerson, listPeople, toPersonWire } from '../../server/db/personRepository.js';
 import { listChores } from './choreRepository.js';
+import { toCompletionWire } from './completion.js';
 import type { Completion } from './completion.js';
 import { getCompletion, insertCompletion, listCompletionsSince, voidCompletion } from './completionRepository.js';
 import type { CompletionsResponse } from './types.js';
@@ -26,12 +26,8 @@ export function readCorrectionList(db: Database, now: Date, days: number): Compl
     since: since.getTime(),
     people: listPeople(db).map(toPersonWire),
     completions: listCompletionsSince(db, since).map((completion) => ({
-      id: completion.id,
-      choreId: completion.choreId,
+      ...toCompletionWire(completion),
       choreName: names.get(completion.choreId) ?? '',
-      personId: completion.personId,
-      completedAt: completion.completedAt.getTime(),
-      pointsAwarded: completion.pointsAwarded,
       voided:
         completion.voided === null
           ? null

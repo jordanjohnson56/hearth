@@ -15,7 +15,7 @@ export function dueDates(rule: RecurrenceRule, start: LocalDate, through: LocalD
     case 'daily':
       return stepping(start, through, 1);
     case 'every':
-      return stepping(start, through, rule.unit === 'weeks' ? rule.interval * 7 : rule.interval);
+      return stepping(start, through, stepDays(rule));
     case 'weekly': {
       const isoDays = new Set(rule.days.map((day) => WEEKDAYS.indexOf(day) + 1));
       return stepping(start, through, 1).filter((date) => isoDays.has(weekdayOf(date)));
@@ -38,7 +38,7 @@ export function nextDueDate(rule: RecurrenceRule, start: LocalDate, from: LocalD
     case 'daily':
       return first;
     case 'every': {
-      const step = rule.unit === 'weeks' ? rule.interval * 7 : rule.interval;
+      const step = stepDays(rule);
       const steps = Math.ceil(daysBetween(start, first) / step);
       return addDays(start, steps * step);
     }
@@ -51,6 +51,10 @@ export function nextDueDate(rule: RecurrenceRule, start: LocalDate, from: LocalD
     case 'whenever':
       return undefined;
   }
+}
+
+function stepDays(rule: Extract<RecurrenceRule, { kind: 'every' }>): number {
+  return rule.unit === 'weeks' ? rule.interval * 7 : rule.interval;
 }
 
 /** `start`, `start + step`, … up to `through`. */

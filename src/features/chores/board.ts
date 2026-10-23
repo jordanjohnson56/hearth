@@ -3,10 +3,10 @@
 // The router (feature.server.ts) maps its results to HTTP.
 import type { Database } from 'better-sqlite3';
 import { localDate } from '../../core/time.js';
-import { getPerson, listPeople } from '../../server/db/personRepository.js';
-import { toPersonWire } from '../../server/people.js';
+import { getPerson, listPeople, toPersonWire } from '../../server/db/personRepository.js';
 import { getChore, listChores } from './choreRepository.js';
 import type { Chore } from './choreRepository.js';
+import { toCompletionWire } from './completion.js';
 import type { Completion } from './completion.js';
 import {
   getCompletion,
@@ -49,10 +49,10 @@ export function readBoard(db: Database, now: Date, zone: string): BoardResponse 
         waiting.push({ chore, status });
         break;
       case 'anytime':
-        anytime.push({ ...summary(chore), claimedToday: status.claimedToday });
+        anytime.push({ ...toBoardChoreWire(chore), claimedToday: status.claimedToday });
         break;
       case 'upcoming':
-        upcoming.push({ ...summary(chore), nextDue: status.nextDue });
+        upcoming.push({ ...toBoardChoreWire(chore), nextDue: status.nextDue });
         break;
       case 'not-started':
         break;
@@ -76,12 +76,8 @@ export function readBoard(db: Database, now: Date, zone: string): BoardResponse 
     anytime,
     upcoming,
     completions: thisWeek.map((completion) => ({
-      id: completion.id,
-      choreId: completion.choreId,
+      ...toCompletionWire(completion),
       choreName: names.get(completion.choreId) ?? '',
-      personId: completion.personId,
-      completedAt: completion.completedAt.getTime(),
-      pointsAwarded: completion.pointsAwarded,
     })),
     standings: standings(people, thisWeek, week),
   };
@@ -137,14 +133,14 @@ function statusOf(chore: Chore, latest: Completion | undefined, now: Date, zone:
   return choreStatus(chore, latest === undefined ? [] : [latest], now, zone);
 }
 
-function summary(chore: Chore): BoardChoreWire {
+function toBoardChoreWire(chore: Chore): BoardChoreWire {
   return { id: chore.id, name: chore.name, points: chore.points };
 }
 
 function toWaitingWire(chore: Chore, status: WaitingStatus): WaitingChoreWire {
   return status.kind === 'overdue'
-    ? { ...summary(chore), state: 'overdue', daysLate: status.daysLate }
-    : { ...summary(chore), state: 'due-today' };
+    ? { ...toBoardChoreWire(chore), state: 'overdue', daysLate: status.daysLate }
+    : { ...toBoardChoreWire(chore), state: 'due-today' };
 }
 
 function compareText(a: string, b: string): number {

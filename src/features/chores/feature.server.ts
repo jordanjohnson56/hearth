@@ -25,7 +25,7 @@ import { Router } from 'express';
 import type { Request } from 'express';
 import { localDate, parseLocalDate } from '../../core/time.js';
 import type { LocalDate } from '../../core/time.js';
-import { HttpError, bodyOf, jsonBody } from '../../server/http.js';
+import { HttpError, bodyOf, jsonBody, positiveId } from '../../server/http.js';
 import type { FeatureContext, Migration, ServerFeature } from '../types.js';
 import { DuplicateChoreNameError, insertChore, listChores, updateChore } from './choreRepository.js';
 import type { Chore, ChorePatch } from './choreRepository.js';
@@ -33,10 +33,10 @@ import { parseRule } from './rule.js';
 import type { RecurrenceRule } from './rule.js';
 import { claimChore, readBoard, undoCompletion } from './board.js';
 import type { ClaimResult } from './board.js';
-import type { Completion } from './completion.js';
+import { toCompletionWire } from './completion.js';
 import { CORRECTION_LIST_MAX_DAYS, reassignCompletion, readCorrectionList, voidAsCorrection } from './corrections.js';
 import { seedChores } from './seed.js';
-import type { BoardResponse, ChoreWire, CompletionWire, CompletionsResponse, DefinitionsResponse } from './types.js';
+import type { BoardResponse, ChoreWire, CompletionsResponse, DefinitionsResponse } from './types.js';
 
 export const MIN_POINTS = 1;
 export const MAX_POINTS = 1000;
@@ -202,10 +202,6 @@ function completionIdOf(req: Request): number {
   return id;
 }
 
-function positiveId(raw: unknown): number | undefined {
-  return typeof raw === 'string' && /^[1-9]\d{0,15}$/.test(raw) ? Number(raw) : undefined;
-}
-
 function notFound(): HttpError {
   return new HttpError(404, 'No such chore');
 }
@@ -283,16 +279,6 @@ function withDomainErrors<T>(run: () => T): T {
     if (err instanceof DuplicateChoreNameError) throw new HttpError(409, err.message);
     throw err;
   }
-}
-
-function toCompletionWire(completion: Completion): CompletionWire {
-  return {
-    id: completion.id,
-    choreId: completion.choreId,
-    personId: completion.personId,
-    completedAt: completion.completedAt.getTime(),
-    pointsAwarded: completion.pointsAwarded,
-  };
 }
 
 function toChoreWire(chore: Chore): ChoreWire {
