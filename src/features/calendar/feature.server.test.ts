@@ -517,6 +517,32 @@ describe('redirects', () => {
   });
 });
 
+/** A harness whose broadcaster's hints are counted, with the poll job to run by hand. */
+async function pollingHarness(endpoints: Record<string, FakeEndpoint> | FakeEndpoint) {
+  const { logger, lines, text } = captureLogger();
+  const broadcaster = createBroadcaster(logger);
+  const hints: string[] = [];
+  broadcaster.subscribe((feature) => hints.push(feature));
+  const { fetch, calls } = fakeFetch(endpoints);
+  let at = NOW.getTime();
+  const options = testAppOptions({ features: [calendarServer], fetch, logger, broadcaster, now: () => new Date(at) });
+  const { app, jobs } = createApp(options);
+  await request(app).put('/api/admin/pin').send({ pin: '1234' });
+  const unlocked = await request(app).post('/api/admin/unlock').send({ pin: '1234' });
+  const h: Harness = {
+    app,
+    token: (unlocked.body as { token: string }).token,
+    calls,
+    text,
+    advance: (ms) => {
+      at += ms;
+    },
+  };
+  const job = jobs[0];
+  if (job === undefined) throw new Error('the calendar feature registers one job');
+  return { ...h, hints, lines, db: options.db, job, poll: () => job.run() };
+}
+
 describe('change hints and the poll job', () => {
   it('publishes a calendar hint after add, edit and delete', async () => {
     const { logger } = captureLogger();
@@ -530,6 +556,65 @@ describe('change hints and the poll job', () => {
     await request(h.app).delete('/api/calendar/sources/1').set('Authorization', `Bearer ${h.token}`);
 
     expect(hints).toEqual(['calendar', 'calendar', 'calendar']);
+  });
+
+  it('publishes exactly one hint for an add whose first fetch brings events', async () => {
+    const h = await pollingHarness({ [ADA_URL]: () => feedResponse(icalFixture('single-events')) });
+
+    await addSource(h);
+
+    expect(h.hints).toEqual(['calendar']);
+  });
+
+  it('publishes no hint for identical consecutive polls and exactly one when the feed changes', async () => {
+    let feed = icalFixture('single-events');
+    const h = await pollingHarness({ [ADA_URL]: () => feedResponse(feed) });
+    await addSource(h);
+    h.hints.length = 0;
+
+    await h.poll();
+    await h.poll();
+    expect(h.hints).toEqual([]);
+
+    feed = feed.replace('SUMMARY:Ada dentist', 'SUMMARY:Ada dentist (moved)');
+    await h.poll();
+    expect(h.hints).toEqual(['calendar']);
+
+    await h.poll();
+    expect(h.hints).toEqual(['calendar']);
+  });
+
+  it('publishes a hint from the refresh route only when the feed changed', async () => {
+    let feed = icalFixture('single-events');
+    const h = await pollingHarness({ [ADA_URL]: () => feedResponse(feed) });
+    await addSource(h);
+    h.hints.length = 0;
+    const refresh = () =>
+      request(h.app).post('/api/calendar/sources/1/refresh').set('Authorization', `Bearer ${h.token}`);
+
+    expect((await refresh()).status).toBe(200);
+    expect(h.hints).toEqual([]);
+
+    feed = icalFixture('empty');
+    expect((await refresh()).status).toBe(200);
+    expect(h.hints).toEqual(['calendar']);
+  });
+
+  it('publishes no hint when a poll fails, since the rows did not change', async () => {
+    let attempt = 0;
+    const h = await pollingHarness({
+      [ADA_URL]: () => {
+        attempt += 1;
+        return attempt === 1 ? feedResponse(icalFixture('single-events')) : feedResponse('gone', 404);
+      },
+    });
+    await addSource(h);
+    h.hints.length = 0;
+
+    await h.poll();
+
+    expect(h.hints).toEqual([]);
+    expect((await listSources(h))[0]).toMatchObject({ lastError: 'http 404' });
   });
 
   it('polls every source every 10 minutes, each on its own', async () => {

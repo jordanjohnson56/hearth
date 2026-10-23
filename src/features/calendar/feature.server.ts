@@ -100,6 +100,7 @@ const migrations: readonly Migration[] = [
 function serviceFor(ctx: FeatureContext) {
   return createCalendarService({
     db: ctx.db,
+    broadcaster: ctx.broadcaster,
     fetch: ctx.fetch,
     logger: ctx.logger,
     now: ctx.now,
