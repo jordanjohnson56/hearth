@@ -6,7 +6,7 @@ import { DayAtAGlance } from './tile/DayAtAGlance.client.js';
 export const calendarClient = {
   id: 'calendar',
   name: 'Calendar',
-  tile: { component: DayAtAGlance, size: 'sm' },
+  tiles: [{ component: DayAtAGlance, size: 'sm' }],
   page: { component: MonthPage, icon: '📅' },
   admin: { component: CalendarAdmin },
 } satisfies ClientFeature;

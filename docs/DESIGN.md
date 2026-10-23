@@ -173,7 +173,7 @@ export interface ServerFeature {
 export interface ClientFeature {
   id: FeatureId;
   name: string;
-  tile?: { component: FC; size: 'sm' | 'wide' };
+  tiles?: readonly { component: FC; size: 'sm' | 'wide' }[]; // Home tiles, wide ones lead
   page?: { component: FC; icon: string };
   admin?: { component: FC };                      // panel under the core /admin panel
 }

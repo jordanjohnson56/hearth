@@ -1,0 +1,78 @@
+/*
+ * The Leaderboard tile. Same rules as shell.css: tokens only, rem/clamp
+ * sizes; px appears only for hairline borders. The tile wrapper (.tile)
+ * is a clipped flex column; this fills it and lets the list scroll inside
+ * when a household outgrows the tile.
+ */
+
+.leaderboard {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-height: 0;
+}
+
+.leaderboard-heading {
+  margin: 0;
+  font-size: clamp(1.125rem, 1rem + 0.5vw, 1.5rem);
+  font-weight: 600;
+}
+
+.leaderboard-note {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.leaderboard-list {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  min-height: 0;
+  max-height: max(8rem, 42dvh);
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+}
+
+/* One standing: rank, avatar, name, then the points. */
+.leaderboard-row {
+  --avatar-size: 2.25rem;
+
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-width: 0;
+  padding: 0.25rem 0;
+  font-size: clamp(1rem, 0.9rem + 0.4vw, 1.25rem);
+}
+
+.leaderboard-rank {
+  flex: none;
+  min-width: 1.5ch;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  text-align: right;
+}
+
+.leaderboard-row[data-leading] .leaderboard-rank {
+  color: var(--color-accent);
+}
+
+.leaderboard-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.leaderboard-points {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  text-align: right;
+  white-space: nowrap;
+}
