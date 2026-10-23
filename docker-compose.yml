@@ -1,0 +1,21 @@
+# docker compose up -d                      serves Hearth on port 4400
+# docker compose run --rm hearth npm run seed   adds the fictional demo family
+#
+# HEARTH_DATA_HOST is required: the absolute host directory that holds the
+# SQLite database. Keep it outside the repository. Compose reads it from the
+# shell environment or from a .env file next to this file. The container runs
+# as uid 1000, so that directory must be writable by uid 1000 (see README).
+services:
+  hearth:
+    build: .
+    image: hearth:local
+    restart: unless-stopped
+    ports:
+      - "4400:4400"
+    environment:
+      PORT: "4400"
+      DATA_DIR: /data
+      TZ: ${TZ:-America/Chicago}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    volumes:
+      - ${HEARTH_DATA_HOST:?set HEARTH_DATA_HOST to an absolute path outside the repo}:/data

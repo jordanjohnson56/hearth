@@ -20,6 +20,7 @@ export default defineConfig({
         'src/client/**',
         'src/**/*.client.{ts,tsx}',
         'src/server/main.ts',
+        'src/server/seed.ts',
       ],
       reporter: ['text', 'html', 'lcov'],
     },

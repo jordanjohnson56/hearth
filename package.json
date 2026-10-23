@@ -20,7 +20,8 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "seed": "node -e \"console.error('seed: not implemented until M0.8'); process.exit(1)\""
+    "seed": "node dist/server/seed.js",
+    "seed:dev": "tsx --tsconfig tsconfig.server.json src/server/seed.ts"
   },
   "dependencies": {
     "better-sqlite3": "13.0.3",
