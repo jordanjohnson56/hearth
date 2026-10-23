@@ -5,6 +5,7 @@ import type { ClientFeature } from '../features/types.js';
 import { AdminPage } from './admin/AdminPage.js';
 import { AdminSessionProvider } from './admin/session.js';
 import { useLiveUpdates } from './liveUpdates.js';
+import { useTheme } from './theme.js';
 import { followLink, useRoute } from './router.js';
 import type { Route } from './router.js';
 import { useNow } from './useNow.js';
@@ -20,6 +21,7 @@ const GHOST_SLOTS: readonly TileSize[] = ['wide', 'sm', 'sm', 'sm', 'sm'];
 
 export function App() {
   useLiveUpdates();
+  useTheme(zone);
   const { path, route } = useRoute();
 
   // The admin session sits above the router so an unlocked admin stays

@@ -47,6 +47,17 @@ export function parseHHMM(value: string): TimeOfDay {
 }
 
 /**
+ * True for a `{ lightFrom, darkFrom }` the server would accept: both
+ * `HH:MM` and different. The client checks a fetched body with this before
+ * trusting it, since a bad pair would throw on every minute tick.
+ */
+export function isThemeTimes(value: unknown): value is ThemeTimes {
+  if (typeof value !== 'object' || value === null) return false;
+  const { lightFrom, darkFrom } = value as Record<string, unknown>;
+  return isHHMM(lightFrom) && isHHMM(darkFrom) && lightFrom !== darkFrom;
+}
+
+/**
  * The wall-clock hour and minute of `instant` in `zone`. Throws RangeError
  * for an unknown zone, like the clock does.
  */

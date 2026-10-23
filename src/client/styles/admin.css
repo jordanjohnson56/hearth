@@ -149,6 +149,12 @@
   letter-spacing: 0.25em;
 }
 
+/* The PIN spacing is for digits typed one by one; a time reads as one value. */
+.admin-input-time {
+  letter-spacing: normal;
+  font-variant-numeric: tabular-nums;
+}
+
 .button {
   display: inline-flex;
   align-items: center;

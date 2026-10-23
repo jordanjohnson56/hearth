@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { evaluateTheme, isHHMM, parseHHMM } from './theme.js';
+import { evaluateTheme, isHHMM, isThemeTimes, parseHHMM } from './theme.js';
 
 const DEFAULTS = { lightFrom: '07:00', darkFrom: '19:30' };
 
@@ -78,5 +78,22 @@ describe('parseHHMM', () => {
 
   it('throws RangeError for anything else', () => {
     expect(() => parseHHMM('7:00')).toThrow(RangeError);
+  });
+});
+
+describe('isThemeTimes', () => {
+  it('accepts two differing HH:MM times in either order', () => {
+    expect(isThemeTimes({ lightFrom: '07:00', darkFrom: '19:30' })).toBe(true);
+    expect(isThemeTimes({ lightFrom: '20:00', darkFrom: '06:00' })).toBe(true);
+  });
+
+  it.each([
+    ['equal times', { lightFrom: '07:00', darkFrom: '07:00' }],
+    ['a malformed time', { lightFrom: '7:00', darkFrom: '19:30' }],
+    ['a missing field', { lightFrom: '07:00' }],
+    ['a non-object', '07:00'],
+    ['null', null],
+  ])('rejects %s', (_name, value) => {
+    expect(isThemeTimes(value)).toBe(false);
   });
 });
