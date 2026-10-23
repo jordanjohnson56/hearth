@@ -1,9 +1,11 @@
 import type { ClientFeature } from '../types.js';
 import { ChoresAdmin } from './admin/ChoresAdmin.client.js';
+import { ChoresToday } from './tile/ChoresToday.client.js';
 
-// No tile or page yet (M2.3): the admin panel defines the chores.
+// The page (M2.5) and the Leaderboard tile (M2.4) read the same board.
 export const choresClient = {
   id: 'chores',
   name: 'Chores',
+  tile: { component: ChoresToday, size: 'wide' },
   admin: { component: ChoresAdmin },
 } satisfies ClientFeature;

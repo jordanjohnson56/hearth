@@ -16,9 +16,10 @@ const zone = configuredZone();
 type TileSize = 'sm' | 'wide';
 
 // Dashed placeholders for future features (DESIGN section 7), after the real
-// tiles. The mockup shows one wide slot and four small ones; the calendar
-// tile took the first small one, so three small ghosts remain.
-const GHOST_SLOTS: readonly TileSize[] = ['wide', 'sm', 'sm', 'sm'];
+// tiles. The mockup shows one wide slot and four small ones; Chores today
+// took the wide one and the calendar tile the first small one, so three
+// small ghosts remain.
+const GHOST_SLOTS: readonly TileSize[] = ['sm', 'sm', 'sm'];
 
 export function App() {
   useLiveUpdates();
@@ -87,7 +88,11 @@ function View({ route }: { route: Route }) {
 }
 
 function Home() {
-  const tiles = clientFeatureList.flatMap((feature) => (feature.tile ? [{ feature, tile: feature.tile }] : []));
+  // Wide tiles lead, as in the mockup: a wide tile after a small one would
+  // leave a hole beside the small one wherever only two columns fit.
+  const tiles = clientFeatureList
+    .flatMap((feature) => (feature.tile ? [{ feature, tile: feature.tile }] : []))
+    .sort((a, b) => Number(b.tile.size === 'wide') - Number(a.tile.size === 'wide'));
 
   return (
     <section className="home-grid" aria-label="Home">

@@ -1,0 +1,149 @@
+/*
+ * The claim flow shared by the Chores today tile and the Chores page: the
+ * person picker (a modal <dialog>) and the undo toast. Same rules as
+ * shell.css: tokens only, rem/clamp sizes; px appears only through
+ * --touch-min and for hairline borders.
+ */
+
+.claim-picker {
+  width: min(40rem, 100% - 2 * var(--space-2));
+  max-height: calc(100dvh - 2 * var(--space-2));
+  margin: auto;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.claim-picker::backdrop {
+  background: color-mix(in srgb, var(--color-bg) 75%, transparent);
+}
+
+.claim-picker-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+}
+
+.claim-picker-heading {
+  margin: 0;
+  font-size: clamp(1.25rem, 1.1rem + 0.6vw, 1.75rem);
+  overflow-wrap: anywhere;
+}
+
+.claim-picker-note {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.claim-picker-people {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 8rem), 1fr));
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A big target: the avatar over the name, well past 44 px each way. */
+.claim-picker-person {
+  --avatar-size: clamp(2.75rem, 2.4rem + 1.5vw, 3.5rem);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  width: 100%;
+  min-height: max(var(--touch-min), 6rem);
+  padding: var(--space-1);
+  border: 1px solid var(--color-border);
+  border-radius: calc(var(--radius) / 1.5);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 1.125rem;
+  cursor: pointer;
+}
+
+.claim-picker-person:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.claim-picker-name {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.claim-picker-error {
+  margin: 0;
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.claim-picker-cancel {
+  align-self: flex-end;
+}
+
+/* The toast sits above the bottom nav, which is at least 3.75rem tall. */
+.undo-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(4.5rem + var(--inset-bottom, 0px));
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  width: max-content;
+  max-width: calc(100% - 2 * var(--space-2));
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-2);
+  overflow: hidden;
+  border-radius: var(--radius);
+  background: var(--color-text);
+  color: var(--color-surface);
+  transform: translateX(-50%);
+}
+
+.undo-toast-message {
+  flex: 1 1 12rem;
+  margin: 0;
+  font-size: 1.125rem;
+  overflow-wrap: anywhere;
+}
+
+.undo-toast-actions {
+  display: flex;
+  gap: var(--space-1);
+  margin-left: auto;
+}
+
+.undo-toast-undo {
+  font-weight: 700;
+}
+
+/* A bar that empties over the toast's lifetime. */
+.undo-toast-timer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 0.25rem;
+  background: var(--color-accent);
+  transform-origin: left;
+  animation: undo-toast-timer var(--undo-toast-ms, 10s) linear forwards;
+}
+
+@keyframes undo-toast-timer {
+  to {
+    transform: scaleX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .undo-toast-timer {
+    animation: none;
+  }
+}
