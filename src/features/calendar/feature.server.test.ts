@@ -1,6 +1,6 @@
 import type { Express } from 'express';
 import request from 'supertest';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { testApp, testAppOptions } from '../../../test/helpers/app.js';
 import { fakeFetch, feedResponse, networkError, timeoutError } from '../../../test/helpers/fetch.js';
 import type { FakeEndpoint } from '../../../test/helpers/fetch.js';
@@ -8,6 +8,7 @@ import { icalFixture } from '../../../test/helpers/ical.js';
 import { captureLogger } from '../../../test/helpers/logger.js';
 import { createApp } from '../../server/app.js';
 import { createBroadcaster } from '../../server/broadcaster.js';
+import { startScheduler } from '../../server/scheduler.js';
 import { appliedMigrations, runMigrations } from '../../server/db/migrate.js';
 import { migrationSets } from '../../server/db/schema.js';
 import { calendarServer } from './feature.server.js';
@@ -517,6 +518,32 @@ describe('redirects', () => {
   });
 });
 
+/** A harness whose broadcaster's hints are counted, with the poll job to run by hand. */
+async function pollingHarness(endpoints: Record<string, FakeEndpoint> | FakeEndpoint) {
+  const { logger, lines, text } = captureLogger();
+  const broadcaster = createBroadcaster(logger);
+  const hints: string[] = [];
+  broadcaster.subscribe((feature) => hints.push(feature));
+  const { fetch, calls } = fakeFetch(endpoints);
+  let at = NOW.getTime();
+  const options = testAppOptions({ features: [calendarServer], fetch, logger, broadcaster, now: () => new Date(at) });
+  const { app, jobs } = createApp(options);
+  await request(app).put('/api/admin/pin').send({ pin: '1234' });
+  const unlocked = await request(app).post('/api/admin/unlock').send({ pin: '1234' });
+  const h: Harness = {
+    app,
+    token: (unlocked.body as { token: string }).token,
+    calls,
+    text,
+    advance: (ms) => {
+      at += ms;
+    },
+  };
+  const job = jobs[0];
+  if (job === undefined) throw new Error('the calendar feature registers one job');
+  return { ...h, hints, lines, db: options.db, job, poll: () => job.run() };
+}
+
 describe('change hints and the poll job', () => {
   it('publishes a calendar hint after add, edit and delete', async () => {
     const { logger } = captureLogger();
@@ -530,6 +557,128 @@ describe('change hints and the poll job', () => {
     await request(h.app).delete('/api/calendar/sources/1').set('Authorization', `Bearer ${h.token}`);
 
     expect(hints).toEqual(['calendar', 'calendar', 'calendar']);
+  });
+
+  it('publishes exactly one hint for an add whose first fetch brings events', async () => {
+    const h = await pollingHarness({ [ADA_URL]: () => feedResponse(icalFixture('single-events')) });
+
+    await addSource(h);
+
+    expect(h.hints).toEqual(['calendar']);
+  });
+
+  it('publishes no hint for identical consecutive polls and exactly one when the feed changes', async () => {
+    let feed = icalFixture('single-events');
+    const h = await pollingHarness({ [ADA_URL]: () => feedResponse(feed) });
+    await addSource(h);
+    h.hints.length = 0;
+
+    await h.poll();
+    await h.poll();
+    expect(h.hints).toEqual([]);
+
+    feed = feed.replace('SUMMARY:Ada dentist', 'SUMMARY:Ada dentist (moved)');
+    await h.poll();
+    expect(h.hints).toEqual(['calendar']);
+
+    await h.poll();
+    expect(h.hints).toEqual(['calendar']);
+  });
+
+  it('publishes a hint from the refresh route only when the feed changed', async () => {
+    let feed = icalFixture('single-events');
+    const h = await pollingHarness({ [ADA_URL]: () => feedResponse(feed) });
+    await addSource(h);
+    h.hints.length = 0;
+    const refresh = () =>
+      request(h.app).post('/api/calendar/sources/1/refresh').set('Authorization', `Bearer ${h.token}`);
+
+    expect((await refresh()).status).toBe(200);
+    expect(h.hints).toEqual([]);
+
+    feed = icalFixture('empty');
+    expect((await refresh()).status).toBe(200);
+    expect(h.hints).toEqual(['calendar']);
+  });
+
+  it('keeps a failing source\'s previous events and classification while the other source updates', async () => {
+    let adaFeed = icalFixture('single-events');
+    let marieDown = false;
+    const h = await pollingHarness({
+      [ADA_URL]: () => feedResponse(adaFeed),
+      [MARIE_URL]: () => (marieDown ? Promise.reject(networkError(MARIE_URL)) : feedResponse(icalFixture('edge-cases'))),
+    });
+    await addSource(h);
+    await addSource(h, { label: 'Marie', color: 'lake', url: MARIE_URL });
+    h.hints.length = 0;
+    h.advance(600_000);
+    adaFeed = adaFeed.replace('SUMMARY:Ada dentist', 'SUMMARY:Ada dentist (moved)');
+    marieDown = true;
+
+    await h.poll();
+
+    expect(await listSources(h)).toMatchObject([
+      { label: 'Ada', lastError: null, lastSuccessAt: NOW.getTime() + 600_000, lastAttemptAt: NOW.getTime() + 600_000 },
+      { label: 'Marie', lastError: 'network', lastSuccessAt: NOW.getTime(), lastAttemptAt: NOW.getTime() + 600_000 },
+    ]);
+    const events = (await eventsBetween(h, '2026-10-24', '2026-10-25')).body as { events: { sourceId: number; title: string }[] };
+    expect(events.events.map((e) => [e.sourceId, e.title])).toEqual([
+      [1, 'Linus no school'],
+      [2, 'Marie late flight'],
+      [1, 'Ada dentist (moved)'],
+    ]);
+    expect(h.hints).toEqual(['calendar']);
+    expect(h.text()).not.toContain('cal.example/');
+  });
+
+  it('slides the window on each poll: occurrences that left are removed, those that entered are added', async () => {
+    const h = await pollingHarness({ [ADA_URL]: () => feedResponse(icalFixture('window-edges')) });
+    await addSource(h);
+    const titlesOn = async (day: string) =>
+      ((await eventsBetween(h, day, day)).body as { events: { title: string }[] }).events.map((e) => e.title);
+    expect(await titlesOn('2026-07-01')).toEqual(['Straddles the window start', 'First window day', 'Crosses the window start']);
+    // The last window day's event runs 23:30 to 00:30, so it overlaps Nov 1 as well.
+    expect(await titlesOn('2027-11-01')).toEqual(['Last window day']);
+    h.hints.length = 0;
+
+    // A month on: the window is 2026-08-01 .. 2027-11-30.
+    h.advance(31 * 24 * 3_600_000);
+    await h.poll();
+
+    expect(await titlesOn('2026-07-01')).toEqual([]);
+    expect(await titlesOn('2027-11-01')).toEqual(['All day after the window', 'Last window day', 'Day after the window']);
+    expect(h.hints).toEqual(['calendar']);
+  });
+
+  it('resolves and logs, without the address, when a poll fails outside a fetch', async () => {
+    const h = await pollingHarness({ [ADA_URL]: () => feedResponse(icalFixture('single-events')) });
+    await addSource(h);
+    // The database going away under the job is the kind of error no fetch classification covers.
+    h.db.close();
+
+    await expect(h.poll()).resolves.toBeUndefined();
+
+    const failures = h.lines().filter((line) => line['msg'] === 'calendar poll failed');
+    expect(failures).toHaveLength(1);
+    expect(failures[0]).toMatchObject({ level: 50, err: { message: expect.any(String) as string } });
+    expect(h.text()).not.toContain('cal.example/');
+  });
+
+  it('publishes no hint when a poll fails, since the rows did not change', async () => {
+    let attempt = 0;
+    const h = await pollingHarness({
+      [ADA_URL]: () => {
+        attempt += 1;
+        return attempt === 1 ? feedResponse(icalFixture('single-events')) : feedResponse('gone', 404);
+      },
+    });
+    await addSource(h);
+    h.hints.length = 0;
+
+    await h.poll();
+
+    expect(h.hints).toEqual([]);
+    expect((await listSources(h))[0]).toMatchObject({ lastError: 'http 404' });
   });
 
   it('polls every source every 10 minutes, each on its own', async () => {
@@ -550,6 +699,45 @@ describe('change hints and the poll job', () => {
     expect(calls.sort()).toEqual([ADA_URL, MARIE_URL].sort());
     const sources = (await request(app).get('/api/calendar/sources')).body as { sources: SourceWire[] };
     expect(sources.sources.map((s) => s.lastError)).toEqual([null, 'network']);
+  });
+});
+
+describe('the poll job under the scheduler', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('runs at boot and every 10 minutes, and a tick during a slow run is skipped', async () => {
+    // The feed answers only when the test says so, to hold a run open.
+    let answer: (res: Response) => void = () => undefined;
+    const h = await pollingHarness({
+      [ADA_URL]: () =>
+        new Promise<Response>((resolve) => {
+          answer = resolve;
+        }),
+    });
+    const adding = addSource(h);
+    while (h.calls.length === 0) await new Promise((resolve) => setImmediate(resolve));
+    answer(feedResponse(icalFixture('single-events')));
+    await adding;
+    h.calls.length = 0;
+    // Real sockets are done with; timers can be faked now.
+    vi.useFakeTimers();
+    const scheduler = startScheduler([h.job], captureLogger().logger);
+
+    expect(h.calls).toEqual([ADA_URL]);
+    answer(feedResponse(icalFixture('single-events')));
+    await vi.advanceTimersByTimeAsync(600_000);
+    expect(h.calls).toEqual([ADA_URL, ADA_URL]);
+
+    // The second run is still waiting on its feed through two more ticks.
+    await vi.advanceTimersByTimeAsync(1_200_000);
+    expect(h.calls).toEqual([ADA_URL, ADA_URL]);
+
+    answer(feedResponse(icalFixture('single-events')));
+    await vi.advanceTimersByTimeAsync(600_000);
+    expect(h.calls).toEqual([ADA_URL, ADA_URL, ADA_URL]);
+    scheduler.stop();
   });
 });
 
