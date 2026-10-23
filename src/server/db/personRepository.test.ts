@@ -20,7 +20,7 @@ describe('person repository', () => {
 
     const ada = upsertPersonByDisplayName(db, { displayName: 'Ada', color: '#2e86ab' });
 
-    expect(ada).toEqual({ id: expect.any(Number) as unknown, displayName: 'Ada', color: '#2e86ab', avatarPath: null });
+    expect(ada).toEqual({ id: expect.any(Number) as unknown, displayName: 'Ada', color: '#2e86ab', avatarPath: null, icon: null });
     expect(listPeople(db)).toEqual([ada]);
   });
 
@@ -30,7 +30,7 @@ describe('person repository', () => {
 
     const second = upsertPersonByDisplayName(db, { displayName: 'Linus', color: '#2e86ab' });
 
-    expect(second).toEqual({ id: first.id, displayName: 'Linus', color: '#2e86ab', avatarPath: null });
+    expect(second).toEqual({ id: first.id, displayName: 'Linus', color: '#2e86ab', avatarPath: null, icon: null });
     expect(listPeople(db)).toEqual([second]);
   });
 

@@ -31,6 +31,14 @@ export const coreMigrations: readonly Migration[] = [
                        avatar_path <> ''
                        AND substr(avatar_path, 1, 1) <> '/'
                        AND instr(avatar_path, '..') = 0
+                     )),
+        -- A token naming one of the app's monochrome icons (kebab-case), not
+        -- a file. Which tokens exist is checked in code, so adding an icon
+        -- needs no migration. Shown when there is no photo avatar.
+        icon         TEXT
+                     CHECK (icon IS NULL OR (
+                       icon GLOB '[a-z0-9]*'
+                       AND NOT icon GLOB '*[^a-z0-9-]*'
                      ))
       ) STRICT;
 

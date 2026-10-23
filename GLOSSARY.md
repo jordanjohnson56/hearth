@@ -51,3 +51,11 @@ record, so a migration is either applied and recorded or neither.
 **Pending migration**: a migration in the code that the database has not
 recorded as applied. The server applies pending migrations at boot, before
 it listens, and refuses to start if one fails.
+
+**Icon** (person icon): a token naming one of the app's kid-friendly
+monochrome icons (an animal, character, food and so on), such as `fox`. It is
+not a file or an emoji. It is drawn in the person's color and shown when the
+person has no photo avatar. Avoid: emoji, glyph.
+
+**Avatar**: how a person is drawn: their photo if one was uploaded, else their
+icon, else a colored initial.

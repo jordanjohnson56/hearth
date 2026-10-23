@@ -73,9 +73,9 @@ describe('the core migration set', () => {
     const insert = (db: ReturnType<typeof coreDatabase>, row: Record<string, unknown>) =>
       db
         .prepare(
-          'INSERT INTO person (display_name, color, avatar_path) VALUES (@display_name, @color, @avatar_path)',
+          'INSERT INTO person (display_name, color, avatar_path, icon) VALUES (@display_name, @color, @avatar_path, @icon)',
         )
-        .run({ display_name: 'Ada', color: '#3a7bd5', avatar_path: null, ...row });
+        .run({ display_name: 'Ada', color: '#3a7bd5', avatar_path: null, icon: null, ...row });
 
     it('accepts a person with or without an avatar', () => {
       const db = coreDatabase();
@@ -98,9 +98,24 @@ describe('the core migration set', () => {
       ['an absolute avatar path', { avatar_path: '/etc/passwd' }],
       ['an avatar path that climbs out of DATA_DIR', { avatar_path: 'avatars/../../hearth.db' }],
       ['an empty avatar path', { avatar_path: '' }],
+      ['an empty icon', { icon: '' }],
+      ['an icon with uppercase letters', { icon: 'Fox' }],
+      ['an icon that looks like a path', { icon: 'icons/fox.svg' }],
+      ['an icon that starts with a hyphen', { icon: '-fox' }],
     ])('rejects %s', (_label, row) => {
       const db = coreDatabase();
       expect(() => insert(db, row)).toThrow(/constraint failed/);
+    });
+
+    it('accepts a person with an icon token, with or without a photo avatar', () => {
+      const db = coreDatabase();
+      insert(db, { icon: 'fox' });
+      insert(db, { display_name: 'Grace', icon: 'ice-cream-2', avatar_path: 'avatars/grace.png' });
+
+      expect(db.prepare('SELECT display_name, icon FROM person ORDER BY id').all()).toEqual([
+        { display_name: 'Ada', icon: 'fox' },
+        { display_name: 'Grace', icon: 'ice-cream-2' },
+      ]);
     });
 
     it('rejects a second person whose name differs only in case', () => {

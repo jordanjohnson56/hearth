@@ -9,6 +9,8 @@ export interface Person {
   color: string;
   /** Relative to DATA_DIR, or null when the person has no avatar. */
   avatarPath: string | null;
+  /** A monochrome icon token (kebab-case), or null when none is chosen. */
+  icon: string | null;
 }
 
 export interface PersonInput {
@@ -21,9 +23,10 @@ interface PersonRow {
   display_name: string;
   color: string;
   avatar_path: string | null;
+  icon: string | null;
 }
 
-const COLUMNS = 'id, display_name, color, avatar_path';
+const COLUMNS = 'id, display_name, color, avatar_path, icon';
 
 function toPerson(row: PersonRow): Person {
   return {
@@ -31,6 +34,7 @@ function toPerson(row: PersonRow): Person {
     displayName: row.display_name,
     color: row.color,
     avatarPath: row.avatar_path,
+    icon: row.icon,
   };
 }
 
@@ -42,8 +46,8 @@ export function listPeople(db: Database): Person[] {
 
 /**
  * Inserts the person, or, when someone with the same display name (ignoring
- * case) exists, updates that row's spelling and color in place. The id and
- * avatar of an existing person are kept.
+ * case) exists, updates that row's spelling and color in place. The id,
+ * avatar and icon of an existing person are kept.
  */
 export function upsertPersonByDisplayName(db: Database, input: PersonInput): Person {
   const row = db
