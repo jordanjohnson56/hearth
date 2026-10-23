@@ -1,6 +1,6 @@
 import { followLink } from '../../../client/router.js';
 import { useClaimFlow } from '../components/useClaimFlow.client.js';
-import { lateness, pointsText } from '../components/boardText.js';
+import { latenessText, pointsText } from '../components/boardText.js';
 import type { WaitingChoreWire } from '../types.js';
 import { useBoard } from '../useBoard.client.js';
 import '../choresToday.css';
@@ -53,7 +53,7 @@ export function ChoresToday() {
 }
 
 function PoolRow({ chore, onClaim }: { chore: WaitingChoreWire; onClaim: () => void }) {
-  const late = lateness(chore);
+  const late = latenessText(chore);
   return (
     <button
       type="button"

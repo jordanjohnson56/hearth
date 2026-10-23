@@ -1,16 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { lateness, pointsText } from './boardText.js';
+import { latenessText, pointsText } from './boardText.js';
 
 describe('board wording', () => {
   it.each([
     [1, '1 day late'],
     [3, '3 days late'],
   ])('says an overdue chore %i days late is "%s"', (daysLate, text) => {
-    expect(lateness({ id: 1, name: 'Feed the dog', points: 2, state: 'overdue', daysLate })).toBe(text);
+    expect(latenessText({ id: 1, name: 'Feed the dog', points: 2, state: 'overdue', daysLate })).toBe(text);
   });
 
   it('says nothing about lateness for a chore due today', () => {
-    expect(lateness({ id: 1, name: 'Feed the dog', points: 2, state: 'due-today' })).toBeUndefined();
+    expect(latenessText({ id: 1, name: 'Feed the dog', points: 2, state: 'due-today' })).toBeUndefined();
   });
 
   it.each([

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { readErrorMessage, useAdminSession } from '../../../client/admin/session.js';
+import { jsonRequest, sendAdmin, useAdminSession } from '../../../client/admin/session.js';
 import type { AdminSession } from '../../../client/admin/session.js';
 import { readJson } from '../../../client/http.js';
 import { PersonAvatar } from '../../../client/PersonAvatar.js';
@@ -43,17 +43,10 @@ export function CompletionsAdmin() {
 
   const reassign = async (completion: AdminCompletionWire, person: PersonWire) => {
     setReassigning({ completion, busy: true, error: undefined });
-    try {
-      const body: ClaimInputWire = { personId: person.id };
-      const res = await session.authFetch(
-        `/api/chores/completions/${String(completion.id)}/reassign`,
-        jsonPost(body),
-      );
-      if (res.status === 201) setReassigning(undefined);
-      else setReassigning({ completion, busy: false, error: await readErrorMessage(res) });
-    } catch {
-      setReassigning({ completion, busy: false, error: 'Could not reach Hearth' });
-    }
+    const body: ClaimInputWire = { personId: person.id };
+    const path = `/api/chores/completions/${String(completion.id)}/reassign`;
+    const result = await sendAdmin(session, path, jsonRequest('POST', body), 201);
+    setReassigning(result.ok ? undefined : { completion, busy: false, error: result.message });
     refetch();
   };
 
@@ -118,17 +111,11 @@ function CompletionRow({
   const voidIt = async () => {
     setBusy(true);
     setMessage('');
-    try {
-      const res = await session.authFetch(`/api/chores/completions/${String(completion.id)}/void`, {
-        method: 'POST',
-      });
-      if (res.status !== 204) setMessage(await readErrorMessage(res));
-    } catch {
-      setMessage('Could not reach Hearth');
-    } finally {
-      setBusy(false);
-      setConfirming(false);
-    }
+    const path = `/api/chores/completions/${String(completion.id)}/void`;
+    const result = await sendAdmin(session, path, { method: 'POST' }, 204);
+    if (!result.ok) setMessage(result.message);
+    setBusy(false);
+    setConfirming(false);
     onChanged();
   };
 
@@ -229,8 +216,4 @@ const instantFormat = new Intl.DateTimeFormat(undefined, {
 /** "Fri, Oct 23, 11:00 AM" in the configured zone. */
 function formatInstant(instant: number): string {
   return instantFormat.format(new Date(instant));
-}
-
-function jsonPost(body: unknown): RequestInit {
-  return { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
 }

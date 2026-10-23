@@ -6,7 +6,7 @@ import type { PersonColor } from '../../core/personColor.js';
 import { PersonAvatar } from '../PersonAvatar.js';
 import { fetchPeople } from '../people.js';
 import { PalettePicker } from './PalettePicker.js';
-import { readErrorMessage, useAdminSession } from './session.js';
+import { jsonRequest, sendAdmin, useAdminSession } from './session.js';
 
 /** Long enough for a full name, short enough for a leaderboard row. */
 const NAME_MAX_LENGTH = 40;
@@ -126,22 +126,11 @@ function EditPerson({ person, onDone }: { person: PersonWire; onDone: (changed: 
       return;
     }
     setBusy(true);
-    session
-      .authFetch(`/api/people/${String(person.id)}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(patch),
-      })
-      .then(async (res) => {
-        if (res.ok) onDone(true);
-        else setMessage(await readErrorMessage(res));
-      })
-      .catch(() => {
-        setMessage('Could not reach Hearth');
-      })
-      .finally(() => {
-        setBusy(false);
-      });
+    void sendAdmin(session, `/api/people/${String(person.id)}`, jsonRequest('PATCH', patch)).then((result) => {
+      setBusy(false);
+      if (result.ok) onDone(true);
+      else setMessage(result.message);
+    });
   };
 
   return (
@@ -183,31 +172,19 @@ function AddPerson({ people, onAdded }: { people: readonly PersonWire[]; onAdded
     event.preventDefault();
     const displayName = values.displayName.trim();
     setBusy(true);
-    session
-      .authFetch('/api/people', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ displayName, color }),
-      })
-      .then(async (res) => {
-        if (res.status === 201) {
-          setTone('info');
-          setMessage(`${displayName} added`);
-          setValues({ displayName: '', color: PERSON_COLORS[0] });
-          setColorChosen(false);
-          onAdded();
-        } else {
-          setTone('error');
-          setMessage(await readErrorMessage(res));
-        }
-      })
-      .catch(() => {
+    void sendAdmin(session, '/api/people', jsonRequest('POST', { displayName, color }), 201).then((result) => {
+      setBusy(false);
+      if (result.ok) {
+        setTone('info');
+        setMessage(`${displayName} added`);
+        setValues({ displayName: '', color: PERSON_COLORS[0] });
+        setColorChosen(false);
+        onAdded();
+      } else {
         setTone('error');
-        setMessage('Could not reach Hearth');
-      })
-      .finally(() => {
-        setBusy(false);
-      });
+        setMessage(result.message);
+      }
+    });
   };
 
   return (

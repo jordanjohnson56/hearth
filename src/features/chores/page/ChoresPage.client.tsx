@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { PersonAvatar } from '../../../client/PersonAvatar.js';
 import { configuredZone } from '../../../client/zone.js';
-import { lateness, pointsText } from '../components/boardText.js';
+import { latenessText, pointsText } from '../components/boardText.js';
 import { useClaimFlow } from '../components/useClaimFlow.client.js';
 import type { AnytimeChoreWire, BoardResponse, WaitingChoreWire } from '../types.js';
 import { useBoard } from '../useBoard.client.js';
@@ -73,7 +73,7 @@ function Waiting({ chores, onClaim }: { chores: WaitingChoreWire[]; onClaim: (ch
       ) : (
         <ul className="chores-page-list">
           {chores.map((chore) => {
-            const late = lateness(chore);
+            const late = latenessText(chore);
             return (
               <li key={chore.id}>
                 <button

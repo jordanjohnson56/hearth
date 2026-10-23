@@ -31,6 +31,15 @@ export function formatLocalDate(year: number, month: number, day: number): strin
 }
 
 /**
+ * `date` as the instant of its UTC midnight: formatted with timeZone 'UTC',
+ * it names that calendar day whatever the device's zone.
+ */
+export function atUtcMidnight(date: string): Date {
+  const { year, month, day } = partsOf(date);
+  return new Date(Date.UTC(year, month - 1, day));
+}
+
+/**
  * The `YYYY-MM-DD` shown on a wall calendar in `zone` at `instant`. Throws
  * RangeError for an unknown zone, like the clock does.
  */
