@@ -54,7 +54,7 @@ After M1. The privacy rails first, then the application.
 | `src/client/` | The React shell: header clock, bottom nav, tile grid with ghost slots, the router, live updates over SSE with a 5-minute backstop, `useFeatureData`, the theme hook and the stylesheet tokens under `styles/`. |
 | `src/client/admin/` | The `/admin` route: "Set a PIN", the PIN pad, the unlocked core panel (change PIN, theme times, lock now) and each feature's admin panel below it (M1). |
 | `test/` | Cross-cutting tests (DST and zone injection, the client-bundle guard against the polyfill, the ical.js import boundary, palette contrast) and helpers; `test/fixtures/ical/` holds the fictional iCalendar fixtures as `.txt` (section 14). |
-| `docs/adr/` | ADRs: 0001 Temporal polyfill, 0002 epoch-millisecond instants in SQLite, 0003 ical.js, 0004 epoch milliseconds on the wire. |
+| `docs/adr/` | ADRs: 0001 Temporal polyfill, 0002 epoch-millisecond instants in SQLite, 0003 ical.js, 0004 epoch milliseconds on the wire, 0005 chores rule kinds. |
 | `GLOSSARY.md` | The project vocabulary (see `docs/agents/domain.md`). |
 | `docs/mockups/home-layout.html` | Accepted navigation reference: three views (Home, Calendar, Chores), a tile-grid landing view, and a full-bleed month calendar. Its caption lists what later decisions superseded; section 8 is authoritative where they differ. Its device frame is 1180×820, but the reference viewport is 1112×834 (section 8). |
 | `docs/agents/` | Conventions for the agent skills: issue tracker (GitHub Issues), triage labels, domain docs. |
@@ -419,8 +419,8 @@ Acceptance:
 ## 13. Open questions (human decision required)
 
 - **Bonus rule spec.** What earns a bonus, how much, and how it interacts with seasons. Blocks the bonus part of M3.
-- **Recurrence rule format for chores.** An RFC 5545 RRULE subset (which M1's ICS parsing already needs) or a smaller custom format. The agent proposes one at the start of M2.
-- **Overdue stacking.** When a daily chore is missed for three days, is it one overdue item or three?
+- **Recurrence rule format for chores.** Decided in the M2 grilling session (ADR 0005): Hearth's own rule kinds (`daily`, `weekly` on weekdays, `every` N days or weeks from the start date, `monthly` on a clamped day, `whenever`), stored as JSON text and expanded over local dates in the pure core. Not RRULE.
+- **Overdue stacking.** Decided in the M2 grilling session: one item per chore. A chore is waiting when it has a due date on or before today later than its last unvoided completion (or its start date); it is overdue when the earliest such date is before today, shown as days late. One claim satisfies every due date up to today; missed due dates earn nothing.
 - **Admin unlock lifetime and PIN attempt limits.** Decided in spec #14 (M1): a token lives 10 minutes from its last use and 60 minutes from issue, in memory only; after 5 consecutive failures unlock refuses for 30 s, doubling per failure to a 15-minute cap, process-wide, reset by a success.
 - **Admin ownership.** Decided in spec #14 (M1): the core shell owns `/admin`, the PIN pad and the core panel; each feature contributes its own panel through `ClientFeature.admin`, rendered below it in registry order.
 
