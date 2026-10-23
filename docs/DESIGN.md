@@ -400,8 +400,8 @@ Acceptance:
 - **Bonus rule spec.** What earns a bonus, how much, and how it interacts with seasons. Blocks the bonus part of M3.
 - **Recurrence rule format for chores.** An RFC 5545 RRULE subset (which M1's ICS parsing already needs) or a smaller custom format. The agent proposes one at the start of M2.
 - **Overdue stacking.** When a daily chore is missed for three days, is it one overdue item or three?
-- **Admin unlock lifetime and PIN attempt limits.**
-- **Admin ownership.** Does each feature contribute its own admin panel (e.g. via the feature contract), or does the core admin shell own all admin screens?
+- **Admin unlock lifetime and PIN attempt limits.** Decided in spec #14 (M1): a token lives 10 minutes from its last use and 60 minutes from issue, in memory only; after 5 consecutive failures unlock refuses for 30 s, doubling per failure to a 15-minute cap, process-wide, reset by a success.
+- **Admin ownership.** Decided in spec #14 (M1): the core shell owns `/admin`, the PIN pad and the core panel; each feature contributes its own panel through `ClientFeature.admin`, rendered below it in registry order.
 
 ---
 

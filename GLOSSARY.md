@@ -59,6 +59,16 @@ a clock and a fake network. _Avoid_: globals, service locator.
 is listening and then every `intervalMs`, skipping a tick while a run is
 still in progress. _Avoid_: cron, poller.
 
+**Admin session**: the time between a successful unlock and a lock, kept
+as an unlock token in the client's memory and the server's. It ends on
+"lock now", 10 minutes after its last use, 60 minutes after unlock, on a
+page reload and on a server restart. _Avoid_: login, logged in.
+
+**Unlock token**: the random bearer credential `POST /api/admin/unlock`
+issues for one admin session; every admin mutation carries it as
+`Authorization: Bearer`. It is never stored anywhere but memory.
+_Avoid_: session cookie, API key.
+
 **Pending migration**: a migration in the code that the database has not
 recorded as applied. The server applies pending migrations at boot, before
 it listens, and refuses to start if one fails.
