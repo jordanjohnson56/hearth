@@ -3,7 +3,7 @@ import { formatClock } from '../core/clock.js';
 import { clientFeatureList } from '../features/registry.client.js';
 import type { ClientFeature } from '../features/types.js';
 import { AdminPage } from './admin/AdminPage.js';
-import { AdminSessionProvider } from './admin/session.js';
+import { AdminSessionProvider, useAdminSession } from './admin/session.js';
 import { useLiveUpdates } from './liveUpdates.js';
 import { useTheme } from './theme.js';
 import { followLink, useRoute } from './router.js';
@@ -43,6 +43,9 @@ export function App() {
 function Header({ onAdmin }: { onAdmin: boolean }) {
   const now = useNow();
   const { time, date } = formatClock(now, zone);
+  const { pinStatus } = useAdminSession();
+  // First run: the button says what the page will ask for.
+  const needsPin = pinStatus.kind === 'ready' && !pinStatus.pinSet;
 
   return (
     <header className="shell-header">
@@ -58,7 +61,7 @@ function Header({ onAdmin }: { onAdmin: boolean }) {
         onClick={followLink}
         aria-current={onAdmin ? 'page' : undefined}
       >
-        Admin
+        {needsPin ? 'Set a PIN' : 'Admin'}
       </a>
     </header>
   );

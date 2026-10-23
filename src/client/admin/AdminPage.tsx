@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { SubmitEvent } from 'react';
 import { isThemeTimes } from '../../core/theme.js';
 import { clientFeatureList } from '../../features/registry.client.js';
@@ -6,38 +6,16 @@ import { setThemeTimes, useThemeTimes } from '../theme.js';
 import { PinPad } from './PinPad.js';
 import { readErrorMessage, useAdminSession } from './session.js';
 
-type Status = { kind: 'loading' } | { kind: 'unreachable' } | { kind: 'ready'; pinSet: boolean };
-
 /**
  * The core /admin route: "Set a PIN" on first run, the PIN pad while
  * locked, and once unlocked the core panel followed by each feature's admin
- * panel. The token is in the session provider, not here, so leaving the
- * route and coming back does not relock.
+ * panel. The PIN status and the token are in the session provider, not
+ * here, so the header can read the status and leaving the route and coming
+ * back does not relock.
  */
 export function AdminPage() {
   const session = useAdminSession();
-  const [status, setStatus] = useState<Status>({ kind: 'loading' });
-  const [attempt, setAttempt] = useState(0);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch('/api/admin/status')
-      .then(async (res) => {
-        if (!res.ok) throw new Error('status failed');
-        return (await res.json()) as { pinSet: boolean };
-      })
-      .then(
-        (body) => {
-          if (!cancelled) setStatus({ kind: 'ready', pinSet: body.pinSet });
-        },
-        () => {
-          if (!cancelled) setStatus({ kind: 'unreachable' });
-        },
-      );
-    return () => {
-      cancelled = true;
-    };
-  }, [attempt]);
+  const status = session.pinStatus;
 
   if (status.kind === 'loading') {
     return (
@@ -56,10 +34,7 @@ export function AdminPage() {
         <button
           type="button"
           className="button"
-          onClick={() => {
-            setStatus({ kind: 'loading' });
-            setAttempt((n) => n + 1);
-          }}
+          onClick={session.refreshPinStatus}
         >
           Try again
         </button>
@@ -69,11 +44,7 @@ export function AdminPage() {
   if (!status.pinSet) {
     return (
       <section className="admin-page" aria-label="Set a PIN">
-        <SetPin
-          onSet={() => {
-            setStatus({ kind: 'ready', pinSet: true });
-          }}
-        />
+        <SetPin onSet={session.markPinSet} />
       </section>
     );
   }
