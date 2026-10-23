@@ -2,7 +2,7 @@
 
 Hearth is a kitchen dashboard: a shared family calendar and a gamified chore tracker. It runs on a home server and is shown on an always-on wall-mounted iPad. Its code is built from feature modules, and the repository is public.
 
-This document is the implementation plan. The repository holds the privacy rails, the M0 skeleton and the M1 calendar (section 1 lists what is where). Milestones M0–M3 (section 11) describe what to build, in order; M2 is next.
+This document is the implementation plan. The repository holds the privacy rails, the M0 skeleton, the M1 calendar and the M2 chores and scoring (section 1 lists what is where). Milestones M0–M3 (section 11) describe what to build, in order; M3 is next.
 
 ---
 
@@ -29,7 +29,7 @@ This section is for whoever picks up the next milestone, human or agent.
 
 ## 1. Current state of the repository
 
-After M1. The privacy rails first, then the application.
+After M2. The privacy rails first, then the application.
 
 | Path | What it is |
 |---|---|
@@ -41,26 +41,28 @@ After M1. The privacy rails first, then the application.
 | `scripts/privacy-check.sh` | The three checks to run before a push (section 14). |
 | `.github/workflows/ci.yml` | **Secret scan** job: gitleaks over the full history (`fetch-depth: 0`) and over the working tree. **Build** job: `npm ci`, `npm run typecheck`, `npm run lint`, `npm test -- --coverage`. **Docker image** job: builds the real Dockerfile and smoke-tests the container as uid 1000 (boots, migrates, serves `/`, exits 0 on SIGTERM). |
 | `.nvmrc` | `22`, to match the Docker base image. A different host Node version would surface only at runtime, as a native-module ABI crash in `better-sqlite3`. |
-| `README.md` | What Hearth is, the Docker quick start, the configuration table, calendar setup (PIN, secret addresses, the status row, theme times), development commands and the privacy note. |
+| `README.md` | What Hearth is, the Docker quick start, the configuration table, admin (PIN, people, theme times), calendar setup (secret addresses, the status row), chores (rule kinds, waiting and overdue, the claim flow, the board, corrections), development commands and the privacy note. |
 | `package.json`, `tsconfig*.json`, `eslint.config.js`, `vite.config.ts`, `vitest.config.ts` | Node 22, TypeScript strict with `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes` and `verbatimModuleSyntax`; three tsconfig projects (server, client, node); ESLint `strictTypeChecked` with the layering rules of section 4; Vitest with `TZ=UTC` forced. |
 | `Dockerfile`, `docker-compose.yml` | Multi-stage build on `node:22-bookworm-slim`, runtime as the unprivileged `node` user with only `/data` writable; Compose requires `HEARTH_DATA_HOST` and bind-mounts it at `/data` (M0). |
-| `src/server/` | Express app factory (`app.ts`), config loader, pino logger with URL redaction, SSE change hints (`events.ts`, `broadcaster.ts`), the migration runner and repositories under `db/`, the seed entrypoint and `main.ts`, the only reader of `process.env`. |
+| `src/server/` | Express app factory (`app.ts`), config loader, pino logger with URL redaction, SSE change hints (`events.ts`, `broadcaster.ts`), the migration runner and repositories under `db/`, the seed entrypoint (the fictional family, then each feature's `seed`) and `main.ts`, the only reader of `process.env`. |
 | `src/server/admin.ts` | Core admin: the 4-digit PIN (scrypt, `pinHash.ts`), in-memory unlock tokens (10 minutes sliding, 60 minutes absolute), the lockout after 5 failures and the `requireAdmin` gate handed to features through the context (M1). |
 | `src/server/settings.ts` | `/api/settings`: the theme times `theme.light_from` and `theme.dark_from` as `HH:MM` (M1). |
+| `src/server/people.ts` | `/api/people`: `GET` is public; `POST` (add) and `PATCH /:id` (rename, recolor) need the bearer. Display names are unique ignoring case. No change hint: the chores board embeds the people it shows (M2). |
 | `src/server/scheduler.ts` | Runs each feature's poll job once after the server listens, then on its interval, with an overlap guard per job (M1). |
 | `src/core/` | The pure core (section 4): zone-aware date math over the Temporal polyfill (`time.ts`), the polyfill-free `localDateText.ts`, `clock.ts`, `theme.ts` (switch evaluation), `personColor.ts`, `changeHint.ts`. |
-| `src/features/` | `types.ts` (the feature contract, type-only), the server and client registries, `calendar/` and the `chores/` stub (M2). |
+| `src/features/` | `types.ts` (the feature contract, type-only), the server and client registries, `calendar/` and `chores/`. |
 | `src/features/calendar/` | The M1 feature: `SecretUrl`, the bounded fetcher, the ical.js provider with recurrence expansion (`provider.ts`, the only ical.js importer), source and event repositories, the service with its change digest, `feature.server.ts` (migration `calendar#1`, `/api/calendar`, the 10-minute poll job), the admin panel, the Day at a glance tile and the month page. |
-| `src/client/` | The React shell: header clock, bottom nav, tile grid with ghost slots, the router, live updates over SSE with a 5-minute backstop, `useFeatureData`, the theme hook and the stylesheet tokens under `styles/`. |
-| `src/client/admin/` | The `/admin` route: "Set a PIN", the PIN pad, the unlocked core panel (change PIN, theme times, lock now) and each feature's admin panel below it (M1). |
-| `test/` | Cross-cutting tests (DST and zone injection, the client-bundle guard against the polyfill, the ical.js import boundary, palette contrast) and helpers; `test/fixtures/ical/` holds the fictional iCalendar fixtures as `.txt` (section 14). |
+| `src/features/chores/` | The M2 feature: the rule kinds and due-date expansion (`rule.ts`, `dueDates.ts`, ADR 0005), the pool (`pool.ts`: waiting, overdue, due today) and the weekly standings (`standings.ts`), the chore and the insert-only completion repositories, the board and corrections services, `feature.server.ts` (migration `chores#1`, `/api/chores`, the demo chores in `seed.ts`), the Chores today and Leaderboard tiles, the Chores page, the shared claim flow (person picker, undo toast) and the admin panel (definitions, the 14-day completion list with Void and Reassign). |
+| `src/client/` | The React shell: header clock, bottom nav, tile grid with ghost slots (wide tiles lead), the router, live updates over SSE with a 5-minute backstop, `useFeatureData`, the theme hook, `PersonAvatar` (the colored initial) and the stylesheet tokens under `styles/`. |
+| `src/client/admin/` | The `/admin` route: "Set a PIN", the PIN pad, the unlocked core panel (people with the palette picker, change PIN, theme times, lock now) and each feature's admin panel below it (M1, people M2). |
+| `test/` | Cross-cutting tests (DST and zone injection, the client-bundle guard against the polyfill, the ical.js import boundary, palette contrast) and helpers (including `featureHarness`, an app with the PIN set and unlocked and an injected clock); `test/fixtures/ical/` holds the fictional iCalendar fixtures as `.txt` (section 14). |
 | `docs/adr/` | ADRs: 0001 Temporal polyfill, 0002 epoch-millisecond instants in SQLite, 0003 ical.js, 0004 epoch milliseconds on the wire, 0005 chores rule kinds. |
 | `GLOSSARY.md` | The project vocabulary (see `docs/agents/domain.md`). |
 | `docs/mockups/home-layout.html` | Accepted navigation reference: three views (Home, Calendar, Chores), a tile-grid landing view, and a full-bleed month calendar. Its caption lists what later decisions superseded; section 8 is authoritative where they differ. Its device frame is 1180×820, but the reference viewport is 1112×834 (section 8). |
 | `docs/agents/` | Conventions for the agent skills: issue tracker (GitHub Issues), triage labels, domain docs. |
 | `.claude/skills/`, `.agents/skills/` | Agent skills (see `skills-lock.json`). |
 
-Chores (M2) and seasons (M3) do not exist yet beyond the `chores` stub in the registries.
+Seasons, bonuses, avatar upload and the kiosk layer (M3) do not exist yet.
 
 ---
 
@@ -121,7 +123,7 @@ graph TD
 
   subgraph server["Server bundle (Node)"]
     SR["src/features/registry.server.ts"]
-    SF["features/&lt;id&gt;/feature.server.ts<br/>migrations · createRouter · createJob"]
+    SF["features/&lt;id&gt;/feature.server.ts<br/>migrations · createRouter · createJob · seed"]
     SR --> SF
     SF --> DB[("SQLite<br/>DATA_DIR/hearth.db")]
     SF --> API["/api/&lt;id&gt; · /api/events (SSE)"]
@@ -129,7 +131,7 @@ graph TD
 
   subgraph client["Browser bundle (Vite · React)"]
     CR["src/features/registry.client.ts"]
-    CF["features/&lt;id&gt;/feature.client.tsx<br/>tile · page"]
+    CF["features/&lt;id&gt;/feature.client.ts<br/>tiles · page · admin"]
     CR --> CF
     CF --> HOME["Home tile grid"]
     CF --> NAV["Bottom nav pages"]
@@ -168,6 +170,7 @@ export interface ServerFeature {
   migrations: readonly Migration[];               // owns its own tables
   createRouter?(ctx: FeatureContext): Router;     // mounted at /api/<id>
   createJob?(ctx: FeatureContext): FeatureJob;    // run by the scheduler
+  seed?(db: Database, now: Date, zone: string): string[]; // fictional demo data, idempotent
 }
 
 export interface ClientFeature {
@@ -262,7 +265,7 @@ Conventions:
 
 ### Chores feature
 
-- **chore:** id, name, recurrence rule, point value, archived flag. Chores are archived, never deleted, because completions reference them.
+- **chore:** id, name (unique ignoring case), recurrence rule (JSON text, ADR 0005), point value, start date (a local date), archived-at instant, created-at. Chores are archived, never deleted, because completions reference them.
 - **completion:** id, chore id, person id, completed-at instant, **points awarded** (copied from the chore at claim time, so later edits to a chore's points never rewrite past weeks or seasons).
 - **completion_void:** completion id (unique), voided-at instant, reason (`undo` or `correction`).
 
@@ -274,6 +277,8 @@ Conventions:
 
 - `/api/<featureId>/…`: each feature's router. Agent proposes the routes per milestone.
 - `GET /api/events`: SSE that emits `{ "feature": "<FeatureId>" }` change hints.
+- `/api/people` (core, M2): `GET` public, `POST` and `PATCH /:id` behind the admin bearer. A person edit publishes no hint.
+- `/api/settings` (core, M1): the theme times.
 - Admin mutations (people, calendar sources, chores, seasons, theme times, PIN) require PIN verification. **Agent proposes** the unlock mechanism (e.g. a short-lived admin token issued after PIN verification), and a human approves it.
 - No response ever includes an iCal URL. Admin views of a source show its label and a masked hint only.
 - Request bodies are validated at the router. Invalid input returns a 4xx with a message, never a stack trace.
@@ -290,7 +295,7 @@ Conventions:
   - **Day at a glance:** all of today, including what has already happened. It scrolls.
   - **Ghost slots** for future features (dashed placeholders).
 - **Calendar page:** full month grid, color-coded per source.
-- **Chores page:** the full pool and recent completions. Because chores are an unassigned shared pool, there are no per-person attributions or rotations; this supersedes the mockup.
+- **Chores page:** Waiting (the full pool), Anytime, Upcoming (each with its next due date) and Recent (this week's completions). Because chores are an unassigned shared pool, there are no per-person attributions or rotations, and the mockup's per-person tabs and Tomorrow column are dropped; this supersedes the mockup.
 
 ---
 
@@ -379,6 +384,8 @@ Acceptance:
 
 ### M2: Chores and scoring
 
+Status: built on PR #35 (spec #26, tickets #27 to #33); the functional verification record is in that PR's description.
+
 Build:
 - Chore definitions, managed in admin.
 - The Chores today tile, the claim flow with the undo toast, and PIN-gated corrections.
@@ -458,4 +465,4 @@ This check is never committed, never automated, and real names never appear in a
 
 - `docker compose up` on the home server; load `http://<host>:4400` in iPad Safari and check the reference viewport, then resize in desktop devtools from ~360 px to ~1920 px in both orientations. Nothing may clip, overflow horizontally or collapse.
 - `npm test` green locally and in Actions, with coverage reported on the pure core.
-- Clone the public repo into a scratch directory as a stranger would, seed it per the README, run `docker compose up`, and confirm a working dashboard populated entirely by the fictional family.
+- Clone the public repo into a scratch directory as a stranger would, seed it per the README, run `docker compose up`, and confirm a working dashboard populated entirely by the fictional family and, from M2, the demo chores.
