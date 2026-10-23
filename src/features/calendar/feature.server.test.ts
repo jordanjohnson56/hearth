@@ -584,7 +584,7 @@ async function pollingHarness(endpoints: Record<string, FakeEndpoint> | FakeEndp
   };
   const job = jobs[0];
   if (job === undefined) throw new Error('the calendar feature registers one job');
-  return { ...h, hints, db: options.db, job, poll: () => job.run() };
+  return { ...h, hints, db: options.db, logger, job, poll: () => job.run() };
 }
 
 describe('change hints and the poll job', () => {
@@ -693,17 +693,21 @@ describe('change hints and the poll job', () => {
     expect(h.hints).toEqual(['calendar']);
   });
 
-  it('resolves and logs, without the address, when a poll fails outside a fetch', async () => {
+  it('rejects when a poll fails outside a fetch, and the scheduler logs it once, without the address', async () => {
     const h = await pollingHarness({ [ADA_URL]: () => feedResponse(icalFixture('single-events')) });
     await addSource(h);
     // The database going away under the job is the kind of error no fetch classification covers.
     h.db.close();
 
-    await expect(h.poll()).resolves.toBeUndefined();
+    await expect(h.poll()).rejects.toThrow();
+    const scheduler = startScheduler([h.job], h.logger);
+    await vi.waitFor(() => {
+      expect(h.lines().filter((line) => line['msg'] === 'job failed')).toHaveLength(1);
+    });
+    scheduler.stop();
 
-    const failures = h.lines().filter((line) => line['msg'] === 'calendar poll failed');
-    expect(failures).toHaveLength(1);
-    expect(failures[0]).toMatchObject({ level: 50, err: { message: expect.any(String) as string } });
+    const errors = h.lines().filter((line) => line['level'] === 50);
+    expect(errors).toEqual([expect.objectContaining({ job: 'calendar poll', err: { type: expect.any(String) as string, message: expect.any(String) as string } })]);
     expect(h.text()).not.toContain('cal.example/');
   });
 

@@ -36,7 +36,6 @@ async function runGuarded(job: FeatureJob, logger: Logger): Promise<void> {
   try {
     await job.run();
   } catch (err) {
-    // The err serializer cuts any URL in the message down to its host.
     logger.error({ err, job: job.name }, 'job failed');
   }
 }
