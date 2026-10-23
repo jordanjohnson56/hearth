@@ -42,13 +42,15 @@ the LAN.
   Linux, the `HEARTH_DATA_HOST` directory must be writable by uid 1000. That is
   usually your own user (check with `id -u`). If it is not, run
   `sudo chown 1000:1000 "$HEARTH_DATA_HOST"`. Create the directory before the
-  first `docker compose up`. If it is missing, Docker creates it owned by root,
-  and Hearth stops with `DATA_DIR must be a directory Hearth can create and
-  write to: /data is not writable`.
-- `HEARTH_DATA_HOST` is required. Without it, `docker compose` refuses to
-  start the container and prints
+  first `docker compose up`. If it is missing, Docker creates it owned by root.
+  Hearth then exits with `DATA_DIR must be a directory Hearth can create and
+  write to: /data is not writable (EACCES)`, and Docker keeps restarting it
+  until you fix the owner.
+- `HEARTH_DATA_HOST` is required by every `docker compose` command in this
+  directory, including `logs`, `run` and `down`. Without it, Compose refuses
+  to start and prints
   `set HEARTH_DATA_HOST to an absolute path outside the repo`. To avoid
-  exporting it in every shell, put `HEARTH_DATA_HOST=/absolute/path` in a
+  exporting it in every new shell, put `HEARTH_DATA_HOST=/absolute/path` in a
   `.env` file next to `docker-compose.yml`. Compose reads that file, and git
   ignores it.
 - The seed applies any pending migrations first, then adds the four people.
