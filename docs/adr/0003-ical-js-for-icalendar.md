@@ -70,8 +70,22 @@ Zone handling, given that ical.js ships no zone database:
 - `skipLibCheck` stays on (it already was).
 - A feed whose text does not parse at all is a fetch failure (`not-ics`);
   a single `VEVENT` whose start, end or recurrence cannot be read is
-  skipped and counted on the source row.
-- Recurrence expansion (#18) lands inside the provider at
-  `occurrencesOf`, behind the same seam; nothing outside it changes.
+  skipped and counted on the source row. ical.js also rejects one bad
+  property value (`RRULE:FREQ=BOGUS`) at parse time for the whole feed;
+  the provider tells that apart from a malformed feed (a `ParserError`),
+  cuts out each `VEVENT` block that does not parse on its own, counts it
+  and parses the rest, so one broken event never fails a source.
+- Recurrence expansion (#18) lives inside the provider at `occurrencesOf`.
+  Masters and overrides are grouped by UID and related explicitly, never
+  auto-related across UIDs. The scan runs from `DTSTART` (or, for a
+  `DAILY`/`WEEKLY` rule without `COUNT`, from a whole number of periods
+  before the window, since `iterator(start)` re-bases a rule rather than
+  skipping ahead) and stops once an instance starts after the window; a
+  master past 10,000 iterations is skipped and counted. An override whose
+  original instance lies outside the scan is still shown at its new time.
+  An override with no master in the feed (an orphan) is shown as a single
+  event, as Google Calendar does. Every occurrence of a recurring event
+  carries its recurrence id, so `uid` plus `recurrenceId` names an
+  occurrence; a single event's is null.
 - If ical.js is ever replaced, the provider is the one module to rewrite
   and its fixture tests are the acceptance suite.

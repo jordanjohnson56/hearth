@@ -87,9 +87,11 @@ event is an instant range; an all-day event is a local-date range with an
 exclusive end. _Avoid_: appointment, entry.
 
 **Occurrence**: one expanded instance of a recurring event, or a single
-event's only instance. Stored rows are occurrences within the poll window;
-the calendar is a view, not a record. _Avoid_: instance (ambiguous with a
-RECURRENCE-ID override), expansion.
+event's only instance. Named by the event's UID plus its recurrence id
+(null for a single event); a RECURRENCE-ID override replaces the
+occurrence it names rather than adding one. Stored rows are occurrences
+within the poll window; the calendar is a view, not a record. _Avoid_:
+instance (ambiguous with a RECURRENCE-ID override), expansion.
 
 **Secret URL** (secret address): the iCal address of a source. A bearer
 credential to the whole calendar: it exists as a string only in the admin
@@ -100,6 +102,12 @@ the database. _Avoid_: feed URL, link.
 **Stale**: the newest successful fetch across every source is older than 60
 minutes. A source that has never succeeded is "not yet fetched", not stale.
 _Avoid_: outdated, expired.
+
+**Change digest**: a SHA-256 over a source's stored event set, order
+independent, computed from the rows a refresh replaces and from the rows it
+writes. A poll or refresh publishes the `calendar` change hint only when the
+two differ; an admin add, change or delete publishes one hint on its own.
+_Avoid_: checksum, etag.
 
 **Pending migration**: a migration in the code that the database has not
 recorded as applied. The server applies pending migrations at boot, before
