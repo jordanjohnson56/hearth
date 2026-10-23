@@ -2,7 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { tempDatabase } from '../../../test/helpers/sqlite.js';
 import { runMigrations } from './migrate.js';
 import type { PersonColor } from '../../core/personColor.js';
-import { DuplicateDisplayNameError, insertPerson, listPeople, updatePerson, upsertPersonByDisplayName } from './personRepository.js';
+import {
+  DuplicateDisplayNameError,
+  getPerson,
+  insertPerson,
+  listPeople,
+  updatePerson,
+  upsertPersonByDisplayName,
+} from './personRepository.js';
 import { migrationSets } from './schema.js';
 
 function migratedDatabase() {
@@ -14,6 +21,14 @@ function migratedDatabase() {
 describe('person repository', () => {
   it('lists no one in an empty database', () => {
     expect(listPeople(migratedDatabase())).toEqual([]);
+  });
+
+  it('gets one person by id, or undefined for an id no one has', () => {
+    const db = migratedDatabase();
+    const marie = insertPerson(db, { displayName: 'Marie', color: 'teal' });
+
+    expect(getPerson(db, marie.id)).toEqual(marie);
+    expect(getPerson(db, marie.id + 1)).toBeUndefined();
   });
 
   it('inserts a new person without an avatar and returns the stored row', () => {

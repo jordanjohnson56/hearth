@@ -1,0 +1,82 @@
+/*
+ * The Chores today tile. Same rules as shell.css: tokens only, rem/clamp
+ * sizes; px appears only through --touch-min and for hairline borders.
+ */
+
+.chores-today {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-height: 0;
+}
+
+.chores-today-heading {
+  margin: 0;
+  font-size: clamp(1.125rem, 1rem + 0.5vw, 1.5rem);
+  font-weight: 600;
+}
+
+.chores-today-note {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.chores-today-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* One tappable row: name, then how late, then the points. */
+.chores-today-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem var(--space-2);
+  width: 100%;
+  min-height: max(var(--touch-min), 3rem);
+  padding: 0.375rem var(--space-2) 0.375rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-left: 0.3125rem solid var(--color-border);
+  border-radius: calc(var(--radius) / 1.5);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  font: inherit;
+  font-size: clamp(1rem, 0.9rem + 0.4vw, 1.25rem);
+  text-align: left;
+  cursor: pointer;
+}
+
+.chores-today-row[data-overdue] {
+  border-left-color: var(--color-accent);
+}
+
+.chores-today-name {
+  flex: 1 1 10rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.chores-today-late {
+  color: var(--color-accent);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.chores-today-points {
+  flex: none;
+  min-width: 3.5rem;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.chores-today-more {
+  align-self: flex-start;
+  margin-top: auto;
+}
