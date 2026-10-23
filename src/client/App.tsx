@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { formatClock } from '../core/clock.js';
 import { clientFeatureList } from '../features/registry.client.js';
-import type { ClientFeature } from '../features/types.js';
+import type { ClientFeature, FeatureTile } from '../features/types.js';
 import { AdminPage } from './admin/AdminPage.js';
 import { AdminSessionProvider, useAdminSession } from './admin/session.js';
 import { useLiveUpdates } from './liveUpdates.js';
@@ -13,13 +13,11 @@ import { configuredZone } from './zone.js';
 
 const zone = configuredZone();
 
-type TileSize = 'sm' | 'wide';
-
 // Dashed placeholders for future features (DESIGN section 7), after the real
 // tiles. The mockup shows one wide slot and four small ones; Chores today
-// took the wide one and the calendar tile the first small one, so three
-// small ghosts remain.
-const GHOST_SLOTS: readonly TileSize[] = ['sm', 'sm', 'sm'];
+// took the wide one, Day at a glance and the Leaderboard two small ones, so
+// two small ghosts remain.
+const GHOST_SLOTS: readonly FeatureTile['size'][] = ['sm', 'sm'];
 
 export function App() {
   useLiveUpdates();
@@ -91,13 +89,13 @@ function Home() {
   // Wide tiles lead, as in the mockup: a wide tile after a small one would
   // leave a hole beside the small one wherever only two columns fit.
   const tiles = clientFeatureList
-    .flatMap((feature) => (feature.tile ? [{ feature, tile: feature.tile }] : []))
+    .flatMap((feature) => (feature.tiles ?? []).map((tile, index) => ({ key: `${feature.id}-${String(index)}`, tile })))
     .sort((a, b) => Number(b.tile.size === 'wide') - Number(a.tile.size === 'wide'));
 
   return (
     <section className="home-grid" aria-label="Home">
-      {tiles.map(({ feature, tile: { component: Tile, size } }) => (
-        <div key={feature.id} className="tile" data-size={size}>
+      {tiles.map(({ key, tile: { component: Tile, size } }) => (
+        <div key={key} className="tile" data-size={size}>
           <Tile />
         </div>
       ))}

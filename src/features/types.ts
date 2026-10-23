@@ -56,10 +56,17 @@ export interface ServerFeature {
   createJob?(ctx: FeatureContext): FeatureJob;
 }
 
+/** One Home tile. A `wide` tile spans two grid columns, or the full row when only one fits. */
+export interface FeatureTile {
+  component: FC;
+  size: 'sm' | 'wide';
+}
+
 export interface ClientFeature {
   id: FeatureId;
   name: string;
-  tile?: { component: FC; size: 'sm' | 'wide' };
+  /** The feature's Home tiles, in order. Wide tiles lead the grid, then the rest in nav order. */
+  tiles?: readonly FeatureTile[];
   page?: { component: FC; icon: string };
   /**
    * The feature's admin panel, rendered by the core /admin route below the
