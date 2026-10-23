@@ -197,6 +197,39 @@ describe('GET /api/chores/board', () => {
     expect((await board(h)).waiting).toEqual([{ id: 1, name: 'Feed the dog', points: 2, state: 'due-today' }]);
     expect((await board(h)).today).toBe('2026-10-24');
   });
+
+  it('rolls the standings over at Monday 00:00 in Chicago, leaving Sunday 23:59 in the old week', async () => {
+    // Sunday 2026-10-25 23:59 CDT (UTC-5); Monday 00:00 CDT is 05:00Z.
+    const h = await harness(new Date('2026-10-26T04:59:00Z'));
+    await addChore(h, 'Feed the dog', { kind: 'daily' }, 2, '2026-10-01');
+    await addChore(h, 'Wash the car', { kind: 'whenever' }, 5, '2026-10-01');
+    const sundayNight = await claimed(h, 1, ADA);
+    await undo(h, await claimed(h, 2, MARIE));
+
+    const sunday = await board(h);
+    expect(sunday.weekStart).toBe(new Date('2026-10-19T05:00:00Z').getTime());
+    expect(sunday.completions.map((c) => c.id)).toEqual([sundayNight]);
+    expect(sunday.standings).toEqual([
+      { rank: 1, personId: ADA, points: 2 },
+      { rank: 2, personId: GRACE, points: 0 },
+      { rank: 2, personId: LINUS, points: 0 },
+      { rank: 2, personId: MARIE, points: 0 },
+    ]);
+
+    h.advance(60 * SECOND_MS);
+    const monday = await board(h);
+    expect(monday.weekStart).toBe(new Date('2026-10-26T05:00:00Z').getTime());
+    expect(monday.completions).toEqual([]);
+    expect(monday.standings).toEqual([
+      { rank: 1, personId: ADA, points: 0 },
+      { rank: 1, personId: GRACE, points: 0 },
+      { rank: 1, personId: LINUS, points: 0 },
+      { rank: 1, personId: MARIE, points: 0 },
+    ]);
+
+    await claimed(h, 1, LINUS);
+    expect(pointsOf(await board(h))).toEqual({ [ADA]: 0, [LINUS]: 2, [MARIE]: 0, [GRACE]: 0 });
+  });
 });
 
 describe('POST /api/chores/:id/claims', () => {
