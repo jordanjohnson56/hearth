@@ -48,6 +48,17 @@ in server registry order.
 its applied-at instant. It ran in one transaction together with that
 record, so a migration is either applied and recorded or neither.
 
+**Feature context**: what the app factory hands a feature's `createRouter`
+and `createJob` once the database is migrated: the database, the
+broadcaster, the logger, the config, `now()`, `fetch` and `requireAdmin`.
+A feature reaches the outside world only through it, so a test can inject
+a clock and a fake network. _Avoid_: globals, service locator.
+
+**Feature job**: a named recurring task a feature builds from its context
+(`{ name, intervalMs, run }`). The scheduler runs it once after the server
+is listening and then every `intervalMs`, skipping a tick while a run is
+still in progress. _Avoid_: cron, poller.
+
 **Pending migration**: a migration in the code that the database has not
 recorded as applied. The server applies pending migrations at boot, before
 it listens, and refuses to start if one fails.

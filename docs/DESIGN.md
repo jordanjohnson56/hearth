@@ -104,7 +104,7 @@ graph TD
 
   subgraph server["Server bundle (Node)"]
     SR["src/features/registry.server.ts"]
-    SF["features/&lt;id&gt;/feature.server.ts<br/>migrations · router · job"]
+    SF["features/&lt;id&gt;/feature.server.ts<br/>migrations · createRouter · createJob"]
     SR --> SF
     SF --> DB[("SQLite<br/>DATA_DIR/hearth.db")]
     SF --> API["/api/&lt;id&gt; · /api/events (SSE)"]
@@ -125,19 +125,32 @@ graph TD
 
 ```ts
 // src/features/types.ts: type declarations only. Every import is `import type`.
-import type { Router } from 'express';
+import type { Database } from 'better-sqlite3';
+import type { RequestHandler, Router } from 'express';
+import type { Logger } from 'pino';
 import type { FC } from 'react';
+import type { Broadcaster } from '../server/broadcaster.js';
+import type { Config } from '../server/config.js';
 
 export type FeatureId = 'calendar' | 'chores';
 
 export interface Migration { id: number; name: string; sql: string }
 
+export interface FeatureContext {               // handed to the factories below
+  db: Database; broadcaster: Broadcaster; logger: Logger; config: Config;
+  now: () => Date;                                // injected so tests drive time
+  fetch: typeof globalThis.fetch;                 // injected so tests drive the network
+  requireAdmin: RequestHandler;                   // core's bearer-token gate
+}
+
+export interface FeatureJob { name: string; intervalMs: number; run(): Promise<void> }
+
 export interface ServerFeature {
   id: FeatureId;
   name: string;
   migrations: readonly Migration[];               // owns its own tables
-  router?: Router;                                // mounted at /api/<id>
-  job?: { intervalMs: number; run(): Promise<void> };
+  createRouter?(ctx: FeatureContext): Router;     // mounted at /api/<id>
+  createJob?(ctx: FeatureContext): FeatureJob;    // run by the scheduler
 }
 
 export interface ClientFeature {
