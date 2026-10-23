@@ -1,0 +1,173 @@
+/*
+ * The Chores page. Same rules as shell.css: tokens only, rem/clamp sizes,
+ * no device literals; px appears only through --touch-min and for hairline
+ * borders. The shell's main region sizes and scrolls the page.
+ */
+
+.chores-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.chores-page-title {
+  margin: 0;
+  font-size: clamp(1.375rem, 1.1rem + 1.2vw, 2rem);
+  font-weight: 600;
+}
+
+.chores-page-note {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+/*
+ * Four sections: stacked in one column; Waiting beside the other three
+ * once two columns of about 19rem fit (the extra height of a long pool
+ * goes under Recent, not between the sections); all four side by side
+ * once four of about 23rem do. The breakpoints are where the rows stop
+ * fitting, not device widths.
+ */
+.chores-page-sections {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: var(--tile-gap);
+}
+
+@container main (width >= 40rem) {
+  .chores-page-sections {
+    grid-template-areas:
+      'waiting anytime'
+      'waiting upcoming'
+      'waiting recent';
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: auto auto 1fr;
+  }
+
+  .chores-page-section[data-area='waiting'] {
+    grid-area: waiting;
+  }
+
+  .chores-page-section[data-area='anytime'] {
+    grid-area: anytime;
+  }
+
+  .chores-page-section[data-area='upcoming'] {
+    grid-area: upcoming;
+  }
+
+  .chores-page-section[data-area='recent'] {
+    grid-area: recent;
+  }
+}
+
+@container main (width >= 96rem) {
+  .chores-page-sections {
+    grid-template-areas: 'waiting anytime upcoming recent';
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-rows: auto;
+  }
+}
+
+.chores-page-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.chores-page-heading {
+  margin: 0;
+  font-size: clamp(1.125rem, 1rem + 0.5vw, 1.5rem);
+  font-weight: 600;
+}
+
+.chores-page-count {
+  color: var(--color-text-muted);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+.chores-page-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* One row: name, then how late or when, then the points. A button where it claims. */
+.chores-page-row {
+  --avatar-size: 2.25rem;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: max(var(--touch-min), 3rem);
+  padding: 0.375rem var(--space-2) 0.375rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-left: 0.3125rem solid var(--color-border);
+  border-radius: calc(var(--radius) / 1.5);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  font: inherit;
+  font-size: clamp(1rem, 0.9rem + 0.4vw, 1.25rem);
+  text-align: left;
+}
+
+button.chores-page-row {
+  cursor: pointer;
+}
+
+.chores-page-row[data-overdue] {
+  border-left-color: var(--color-accent);
+}
+
+/* Read-only rows: no claim edge, so they do not look tappable. */
+.chores-page-row[data-static],
+.chores-page-row[data-done] {
+  border-left-width: 1px;
+  background: transparent;
+}
+
+.chores-page-row[data-done] {
+  color: var(--color-text-muted);
+}
+
+/* The name over how late, when or who: the row never wraps the points under it. */
+.chores-page-detail {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.chores-page-name {
+  overflow-wrap: anywhere;
+}
+
+.chores-page-meta {
+  color: var(--color-text-muted);
+  font-size: 0.875em;
+  overflow-wrap: anywhere;
+}
+
+.chores-page-late {
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.chores-page-points {
+  flex: none;
+  min-width: 3.5rem;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
