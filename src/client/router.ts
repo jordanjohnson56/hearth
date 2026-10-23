@@ -53,9 +53,14 @@ export function followLink(event: MouseEvent<HTMLAnchorElement>): void {
   ) {
     return;
   }
+  const link = event.currentTarget;
+  if (link.origin !== window.location.origin) return;
   event.preventDefault();
-  const target = event.currentTarget.pathname;
-  if (target !== window.location.pathname) {
+  // Query and fragment included: `/calendar?view=week` from `/calendar` is
+  // a navigation, and pushState must keep them.
+  const target = link.pathname + link.search + link.hash;
+  const { pathname, search, hash } = window.location;
+  if (target !== pathname + search + hash) {
     window.history.pushState(null, '', target);
     window.dispatchEvent(new Event(NAVIGATE_EVENT));
   }
