@@ -1,12 +1,15 @@
+import { readFile } from 'node:fs/promises';
 import { STATUS_CODES } from 'node:http';
+import { join } from 'node:path';
 import express from 'express';
-import type { ErrorRequestHandler, Express, Response } from 'express';
+import type { ErrorRequestHandler, Express, RequestHandler, Response } from 'express';
 import { serverFeatureList } from '../features/registry.server.js';
 import type { ServerFeature } from '../features/types.js';
 import { createBroadcaster } from './broadcaster.js';
 import type { Broadcaster } from './broadcaster.js';
 import type { Config } from './config.js';
 import { eventsHandler } from './events.js';
+import { injectZone } from './index-html.js';
 import type { Logger } from './logger.js';
 
 export interface AppOptions {
@@ -40,18 +43,44 @@ export function createApp(options: AppOptions): Express {
     sendError(res, 404);
   });
 
-  app.use(express.static(options.clientDist));
+  // index.html always goes through sendIndex (zone injected), never raw
+  // from express.static: hence `index: false` and the explicit route.
+  const sendIndex = indexHandler(options.clientDist, options.config.zone);
+  app.get('/index.html', sendIndex);
+  app.use(express.static(options.clientDist, { index: false }));
 
   // SPA fallback: every other GET is a client-side route.
-  app.get('/{*path}', (_req, res, next) => {
-    res.sendFile('index.html', { root: options.clientDist }, (err) => {
-      if (err) next(err);
-    });
-  });
+  app.get('/{*path}', sendIndex);
 
   app.use(errorBoundary(options.logger));
 
   return app;
+}
+
+/**
+ * Serves the client's index.html with the configured zone injected. Read per
+ * request (it is small) so a rebuilt client needs no restart. A missing
+ * build is a 404, like any other missing file.
+ */
+function indexHandler(clientDist: string, zone: string): RequestHandler {
+  return async (_req, res) => {
+    let html: string;
+    try {
+      html = await readFile(join(clientDist, 'index.html'), 'utf8');
+    } catch (err) {
+      throw isMissingFile(err) ? Object.assign(new Error('client not built'), { status: 404 }) : err;
+    }
+    res.type('html').set('Cache-Control', 'no-cache').send(injectZone(html, zone));
+  };
+}
+
+function isMissingFile(err: unknown): boolean {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    'code' in err &&
+    (err.code === 'ENOENT' || err.code === 'ENOTDIR')
+  );
 }
 
 /**
