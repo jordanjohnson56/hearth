@@ -6,6 +6,7 @@ import express from 'express';
 import type { ErrorRequestHandler, Express, RequestHandler, Response } from 'express';
 import { serverFeatureList } from '../features/registry.server.js';
 import type { FeatureContext, FeatureJob, ServerFeature } from '../features/types.js';
+import { createAdmin } from './admin.js';
 import { createBroadcaster } from './broadcaster.js';
 import type { Broadcaster } from './broadcaster.js';
 import type { Config } from './config.js';
@@ -29,11 +30,6 @@ export interface AppOptions {
   /** Outbound HTTP for features. Defaults to the global fetch; tests inject fixtures. */
   fetch?: typeof globalThis.fetch;
   /**
-   * The admin gate handed to features. Defaults to a placeholder that refuses
-   * everything with a 401 until core's bearer-token middleware exists.
-   */
-  requireAdmin?: RequestHandler;
-  /**
    * Live-update hub behind GET /api/events. The entrypoint passes the one it
    * hands to jobs and writers; defaults to a private one nothing publishes to.
    */
@@ -55,15 +51,19 @@ export function createApp(options: AppOptions): CreatedApp {
   app.disable('x-powered-by');
 
   const broadcaster = options.broadcaster ?? createBroadcaster(options.logger);
+  const now = options.now ?? (() => new Date());
+  const admin = createAdmin({ db: options.db, now, logger: options.logger });
   const ctx: FeatureContext = {
     db: options.db,
     broadcaster,
     logger: options.logger,
     config: options.config,
-    now: options.now ?? (() => new Date()),
+    now,
     fetch: options.fetch ?? globalThis.fetch,
-    requireAdmin: options.requireAdmin ?? placeholderRequireAdmin,
+    requireAdmin: admin.requireAdmin,
   };
+
+  app.use('/api/admin', admin.router);
 
   const jobs: FeatureJob[] = [];
   for (const feature of options.features ?? serverFeatureList) {
@@ -99,11 +99,6 @@ export function createApp(options: AppOptions): CreatedApp {
 
   return { app, jobs };
 }
-
-/** Stands in for the admin gate until core has one: nobody is an admin. */
-const placeholderRequireAdmin: RequestHandler = (_req, res) => {
-  sendError(res, 401);
-};
 
 /**
  * Serves the client's index.html with the configured zone injected. Read per

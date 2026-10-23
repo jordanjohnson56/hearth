@@ -176,7 +176,7 @@ describe('feature context', () => {
     expect(lines()[0]).toMatchObject({ feature: 'chores', msg: 'router says hello' });
   });
 
-  it('refuses a route behind the placeholder requireAdmin with a JSON 401', async () => {
+  it("refuses a route behind the context's requireAdmin without a bearer (bare 401)", async () => {
     const res = await request(testApp({ features: [choresUsingContext()] })).get(
       '/api/chores/locked',
     );
@@ -185,15 +185,13 @@ describe('feature context', () => {
     expect(res.body).toEqual({ error: 'Unauthorized' });
   });
 
-  it('uses an injected requireAdmin in place of the placeholder', async () => {
-    const app = testApp({
-      features: [choresUsingContext()],
-      requireAdmin: (_req, _res, next) => {
-        next();
-      },
-    });
+  it("hands the router core's admin gate, which a token from unlock passes", async () => {
+    const app = testApp({ features: [choresUsingContext()] });
+    await request(app).put('/api/admin/pin').send({ pin: '1234' });
+    const unlocked = await request(app).post('/api/admin/unlock').send({ pin: '1234' });
+    const { token } = unlocked.body as { token: string };
 
-    const res = await request(app).get('/api/chores/locked');
+    const res = await request(app).get('/api/chores/locked').set('Authorization', `Bearer ${token}`);
 
     expect(res.body).toEqual({ secret: true });
   });
