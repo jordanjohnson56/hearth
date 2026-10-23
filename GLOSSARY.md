@@ -87,9 +87,11 @@ event is an instant range; an all-day event is a local-date range with an
 exclusive end. _Avoid_: appointment, entry.
 
 **Occurrence**: one expanded instance of a recurring event, or a single
-event's only instance. Stored rows are occurrences within the poll window;
-the calendar is a view, not a record. _Avoid_: instance (ambiguous with a
-RECURRENCE-ID override), expansion.
+event's only instance. Named by the event's UID plus its recurrence id
+(null for a single event); a RECURRENCE-ID override replaces the
+occurrence it names rather than adding one. Stored rows are occurrences
+within the poll window; the calendar is a view, not a record. _Avoid_:
+instance (ambiguous with a RECURRENCE-ID override), expansion.
 
 **Secret URL** (secret address): the iCal address of a source. A bearer
 credential to the whole calendar: it exists as a string only in the admin

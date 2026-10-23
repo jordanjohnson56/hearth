@@ -16,7 +16,11 @@ export type EventTiming =
 /** One normalized entry from a feed, before it is tied to a source. */
 export type ParsedEvent = {
   uid: string;
-  /** The RECURRENCE-ID of an overridden instance, else null. */
+  /**
+   * Which instance of a recurring event this is: its RECURRENCE-ID as the
+   * feed would write it (an override's, when one replaces the instance).
+   * Null for a single event. With the uid it tells occurrences apart.
+   */
   recurrenceId: string | null;
   title: string;
   location: string | null;
