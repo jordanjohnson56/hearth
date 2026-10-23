@@ -12,10 +12,16 @@ services:
     restart: unless-stopped
     ports:
       - "4400:4400"
+    # TZ and LOG_LEVEL come only from .env (optional), never from the shell
+    # running compose: a host's TZ (often UTC) would silently become the
+    # household zone. Unset, Hearth uses its defaults (America/Chicago, info).
+    env_file:
+      - path: .env
+        required: false
+    # Pinned: these override the same names in .env (DATA_DIR=./data there
+    # is the bare-metal default, wrong inside the container).
     environment:
       PORT: "4400"
       DATA_DIR: /data
-      TZ: ${TZ:-America/Chicago}
-      LOG_LEVEL: ${LOG_LEVEL:-info}
     volumes:
       - ${HEARTH_DATA_HOST:?set HEARTH_DATA_HOST to an absolute path outside the repo}:/data

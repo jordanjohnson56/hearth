@@ -75,10 +75,13 @@ the PIN and chores, lives in the database under `DATA_DIR`, not here.
 | `HEARTH_DATA_HOST` | none, required | Docker Compose only: the absolute host directory mounted at `/data`. Keep it outside the repository. |
 
 An empty value counts as unset and falls back to the default. Under Docker,
-`TZ` and `LOG_LEVEL` come from your shell or the `.env` file next to
-`docker-compose.yml`. Outside Docker, Hearth reads only the process
-environment, so set the variables in your shell, for example
-`TZ=Europe/Paris npm start`.
+`TZ` and `LOG_LEVEL` come only from the optional `.env` file next to
+`docker-compose.yml`, never from the shell that runs `docker compose`: a
+host's own `TZ` (often `UTC`) would otherwise become the household's zone
+without anyone noticing. Without a `.env`, or with a variable left out of
+it, Hearth uses the default. `PORT` and `DATA_DIR` in `.env` have no effect
+under Docker. Outside Docker, Hearth reads only the process environment, so
+set the variables in your shell, for example `TZ=Europe/Paris npm start`.
 
 ## Development
 
