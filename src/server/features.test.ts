@@ -117,7 +117,7 @@ describe('feature routers', () => {
     expect(lines()[0]).toMatchObject({ method: 'GET', path: '/api/chores/boom', status: 500 });
   });
 
-  it('mounts no feature routes for the registered stubs', async () => {
+  it('mounts no feature routes for the chores stub', async () => {
     const res = await request(testApp()).get('/api/chores');
 
     expect(res.status).toBe(404);

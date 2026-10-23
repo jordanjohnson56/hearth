@@ -43,6 +43,19 @@ describe('createLogger', () => {
     expect(lines().map((line) => line['msg'])).toEqual(['loud']);
   });
 
+  it('redacts a URL in the message string itself, not only under err', () => {
+    const { logger, lines, text } = captureLogger();
+
+    logger.warn(`could not fetch ${SECRET_ICAL}`);
+    logger.warn({ source: 1 }, `retrying ${SECRET_ICAL} later`);
+
+    expect(lines().map((line) => line['msg'])).toEqual([
+      'could not fetch https://calendar.example.com/[redacted]',
+      'retrying https://calendar.example.com/[redacted] later',
+    ]);
+    expect(text()).not.toContain('private-0123abcd');
+  });
+
   it('never writes an error message URL, query string or stack', () => {
     const { logger, lines, text } = captureLogger();
     const err = Object.assign(new Error(`fetch failed for ${SECRET_ICAL}`), {
