@@ -9,6 +9,7 @@ import { localDateOf, partsOf } from '../../../core/localDateText.js';
 import { WEEKDAYS } from '../rule.js';
 import type { RecurrenceRule, RuleKind, Weekday } from '../rule.js';
 import type { ChoreInputWire, ChorePatchWire, ChoreWire, DefinitionsResponse } from '../types.js';
+import { CompletionsAdmin } from './CompletionsAdmin.client.js';
 import '../chores.css';
 
 const zone = configuredZone();
@@ -24,7 +25,8 @@ function fetchDefinitions(session: AdminSession, signal: AbortSignal): Promise<D
  * The chores section of the unlocked admin panel: every chore with its rule
  * and points, an add form, inline edit, archive and unarchive, and a toggle
  * that shows the archived ones. The rule is chosen with buttons; the server
- * checks it again and its message is shown under the form.
+ * checks it again and its message is shown under the form. Below them, the
+ * last 14 days of completions with Void and Reassign (CompletionsAdmin).
  */
 export function ChoresAdmin() {
   const session = useAdminSession();
@@ -64,6 +66,7 @@ export function ChoresAdmin() {
         </ul>
       )}
       <AddChore onAdded={refetch} />
+      <CompletionsAdmin />
     </div>
   );
 }

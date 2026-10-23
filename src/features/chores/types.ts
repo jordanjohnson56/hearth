@@ -1,6 +1,7 @@
 // Wire shapes of the chores API, shared by the server and the client.
 // Instants are epoch milliseconds, local dates YYYY-MM-DD (docs/adr/0004).
 import type { PersonWire } from '../../core/person.js';
+import type { VoidReason } from './completion.js';
 import type { RecurrenceRule } from './rule.js';
 
 /** A chore definition as GET/POST/PATCH /api/chores/definitions return it. */
@@ -122,4 +123,31 @@ export interface CompletionWire {
   personId: number;
   completedAt: number;
   pointsAwarded: number;
+}
+
+// Corrections (bearer): POST /api/chores/completions/:id/void answers 204;
+// POST /api/chores/completions/:id/reassign takes ClaimInputWire and answers
+// 201 with the new CompletionWire.
+
+/** A completion in the admin correction list, voided or not. */
+export interface AdminCompletionWire {
+  id: number;
+  choreId: number;
+  /** The chore's current name (it may be archived since). */
+  choreName: string;
+  personId: number;
+  completedAt: number;
+  pointsAwarded: number;
+  /** Its void, or null while it counts. */
+  voided: { voidedAt: number; reason: VoidReason } | null;
+}
+
+/** GET /api/chores/completions?days=N (1–14, default 14). */
+export interface CompletionsResponse {
+  /** The instant the list starts: N × 24 hours before now. */
+  since: number;
+  /** Everyone, in creation order: the completions name them by id, and a reassignment picks from them. */
+  people: PersonWire[];
+  /** Every completion since `since`, voided ones included, newest first. */
+  completions: AdminCompletionWire[];
 }

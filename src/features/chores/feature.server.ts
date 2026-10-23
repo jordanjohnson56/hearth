@@ -1,6 +1,6 @@
 // The chores feature's server half: its tables and its router (mounted at
-// /api/chores): the chore definitions (admin), the public board, claims and
-// the wall's undo. Corrections (M2.6) build on the same tables.
+// /api/chores): the chore definitions (admin), the public board, claims,
+// the wall's undo and the admin corrections (void, reassign, the list).
 //
 // Contract (status codes):
 //   GET   /board                    200 board (public)
@@ -8,6 +8,13 @@
 //                                   404 unknown chore; 409 not claimable (public)
 //   POST  /completions/:id/undo     204 within 15 s of the claim; 409 after;
 //                                   404 unknown or already voided (public)
+//   GET   /completions?days=14      200 the last 1–14 days, voided included
+//                                   with reasons; 400 bad days; 401
+//   POST  /completions/:id/void     204 voided as a correction; 404 unknown
+//                                   or already voided; 401
+//   POST  /completions/:id/reassign 201 the new completion (original instant
+//                                   and points); 400 bad, unknown or same
+//                                   person; 404 unknown or already voided; 401
 //   GET   /definitions      200 { chores } (archived included); 401 no bearer
 //   POST  /definitions      201 chore; 400 bad field; 409 duplicate name; 401
 //   PATCH /definitions/:id  200 chore; 400; 404; 409; 401
@@ -26,7 +33,8 @@ import type { RecurrenceRule } from './rule.js';
 import { claimChore, readBoard, undoCompletion } from './board.js';
 import type { ClaimResult } from './board.js';
 import type { Completion } from './completion.js';
-import type { BoardResponse, ChoreWire, CompletionWire, DefinitionsResponse } from './types.js';
+import { CORRECTION_LIST_MAX_DAYS, reassignCompletion, readCorrectionList, voidAsCorrection } from './corrections.js';
+import type { BoardResponse, ChoreWire, CompletionWire, CompletionsResponse, DefinitionsResponse } from './types.js';
 
 export const MIN_POINTS = 1;
 export const MAX_POINTS = 1000;
@@ -107,6 +115,30 @@ function createRouter(ctx: FeatureContext): Router {
     if (result.kind === 'too-late') throw new HttpError(409, 'Too late to undo. An admin can void it.');
     ctx.broadcaster.publish('chores');
     res.status(204).end();
+  });
+
+  router.get('/completions', ctx.requireAdmin, (req, res) => {
+    const body: CompletionsResponse = readCorrectionList(ctx.db, ctx.now(), daysOf(req.query['days']));
+    res.json(body);
+  });
+
+  router.post('/completions/:id/void', ctx.requireAdmin, (req, res) => {
+    const id = completionIdOf(req);
+    const result = voidAsCorrection(ctx.db, id, ctx.now());
+    if (result.kind === 'no-completion') throw noSuchCompletion();
+    ctx.broadcaster.publish('chores');
+    res.status(204).end();
+  });
+
+  router.post('/completions/:id/reassign', ctx.requireAdmin, jsonBody, (req, res) => {
+    const id = completionIdOf(req);
+    const personId = personIdOf(bodyOf(req.body)['personId']);
+    const result = reassignCompletion(ctx.db, id, personId, ctx.now());
+    if (result.kind === 'no-completion') throw noSuchCompletion();
+    if (result.kind === 'no-person') throw new HttpError(400, 'No such person');
+    if (result.kind === 'same-person') throw new HttpError(400, 'That is already who did it');
+    ctx.broadcaster.publish('chores');
+    res.status(201).json(toCompletionWire(result.completion));
   });
 
   router.get('/definitions', ctx.requireAdmin, (_req, res) => {
@@ -199,6 +231,15 @@ function claimRefusal(result: Exclude<ClaimResult, { kind: 'claimed' }>): HttpEr
     case 'claimed-today':
       return new HttpError(409, 'That chore was already claimed today');
   }
+}
+
+function daysOf(value: unknown): number {
+  if (value === undefined) return CORRECTION_LIST_MAX_DAYS;
+  const days = typeof value === 'string' && /^\d{1,2}$/.test(value) ? Number(value) : NaN;
+  if (!(days >= 1 && days <= CORRECTION_LIST_MAX_DAYS)) {
+    throw new HttpError(400, `Days must be a whole number from 1 to ${String(CORRECTION_LIST_MAX_DAYS)}`);
+  }
+  return days;
 }
 
 function nameOf(value: unknown): string {
