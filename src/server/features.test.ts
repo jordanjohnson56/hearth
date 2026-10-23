@@ -8,7 +8,7 @@ import { createApp } from './app.js';
 import { createBroadcaster } from './broadcaster.js';
 import { upsertPersonByDisplayName } from './db/personRepository.js';
 
-/** A test-only feature; the registered stubs have no router yet. */
+/** A test-only feature standing in for chores, the registered stub that has no router yet. */
 function choresWithPing(): ServerFeature {
   return {
     id: 'chores',
@@ -117,7 +117,9 @@ describe('feature routers', () => {
     expect(lines()[0]).toMatchObject({ method: 'GET', path: '/api/chores/boom', status: 500 });
   });
 
-  it('mounts no feature routes for the chores stub', async () => {
+  // Calendar has had a router since M1, so this covers chores alone: the
+  // registered stub without one must mount nothing under /api/chores.
+  it('mounts no feature routes for the chores stub, which has no router yet', async () => {
     const res = await request(testApp()).get('/api/chores');
 
     expect(res.status).toBe(404);

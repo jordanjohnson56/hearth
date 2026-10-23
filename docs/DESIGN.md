@@ -2,7 +2,7 @@
 
 Hearth is a kitchen dashboard: a shared family calendar and a gamified chore tracker. It runs on a home server and is shown on an always-on wall-mounted iPad. Its code is built from feature modules, and the repository is public.
 
-This document is the implementation plan. The repository currently holds the privacy rails and a navigation mockup, but no application code. Milestones M0–M3 (section 11) describe what to build, in order.
+This document is the implementation plan. The repository holds the privacy rails, the M0 skeleton and the M1 calendar (section 1 lists what is where). Milestones M0–M3 (section 11) describe what to build, in order; M2 is next.
 
 ---
 
@@ -29,21 +29,38 @@ This section is for whoever picks up the next milestone, human or agent.
 
 ## 1. Current state of the repository
 
+After M1. The privacy rails first, then the application.
+
 | Path | What it is |
 |---|---|
 | `LICENSE` | MIT. |
 | `.gitignore` | Ignores `node_modules/`, `dist/`, `data/`, `coverage/`, `.env` and `.env.*` (except `.env.example`), every SQLite variant (`*.db`, `*.db-*`, `*.sqlite`, `*.sqlite3`), `*.ics` and `avatars/`. |
-| `.env.example` | Bootstrap config only: `PORT=4400`, `DATA_DIR=./data`, `TZ=America/Chicago`, `LOG_LEVEL=info`. Everything a person would configure lives in the database. It refers to `HEARTH_DATA_HOST` in `docker-compose.yml`, which does not exist yet (M0). |
-| `.gitleaks.toml` | Extends the default gitleaks rules with three project rules: Google Calendar secret-address iCal URLs, `webcal://` URLs, and inline `BEGIN:VCALENDAR` payloads. The allowlist covers `.gitleaks.toml` itself and any `DESIGN.md` (including this file). |
+| `.env.example` | Bootstrap config only: `PORT=4400`, `DATA_DIR=./data`, `TZ=America/Chicago`, `LOG_LEVEL=info`. Everything a person would configure lives in the database. |
+| `.gitleaks.toml` | Extends the default gitleaks rules with three project rules: Google Calendar secret-address iCal URLs, `webcal://` URLs, and inline `BEGIN:VCALENDAR` payloads. The allowlist covers `.gitleaks.toml` itself, any `DESIGN.md` (including this file) and the hand-written iCalendar fixtures in `test/fixtures/ical/*.txt` (M1, human-approved). |
 | `.githooks/pre-commit` | Runs `gitleaks git --staged --redact --config .gitleaks.toml`, and fails hard when gitleaks is missing. Active only after `git config core.hooksPath .githooks`, because hooks are not cloned. |
 | `scripts/privacy-check.sh` | The three checks to run before a push (section 14). |
-| `.github/workflows/ci.yml` | **Secret scan** job: gitleaks over the full history (`fetch-depth: 0`) and over the working tree. **Build** job: typecheck, lint, then test with coverage, all skipped until `package.json` exists. Once M0 lands it runs `npm ci`, `npm run typecheck`, `npm run lint` and `npm test -- --coverage`. |
+| `.github/workflows/ci.yml` | **Secret scan** job: gitleaks over the full history (`fetch-depth: 0`) and over the working tree. **Build** job: `npm ci`, `npm run typecheck`, `npm run lint`, `npm test -- --coverage`. **Docker image** job: builds the real Dockerfile and smoke-tests the container as uid 1000 (boots, migrates, serves `/`, exits 0 on SIGTERM). |
 | `.nvmrc` | `22`, to match the Docker base image. A different host Node version would surface only at runtime, as a native-module ABI crash in `better-sqlite3`. |
+| `README.md` | What Hearth is, the Docker quick start, the configuration table, calendar setup (PIN, secret addresses, the status row, theme times), development commands and the privacy note. |
+| `package.json`, `tsconfig*.json`, `eslint.config.js`, `vite.config.ts`, `vitest.config.ts` | Node 22, TypeScript strict with `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes` and `verbatimModuleSyntax`; three tsconfig projects (server, client, node); ESLint `strictTypeChecked` with the layering rules of section 4; Vitest with `TZ=UTC` forced. |
+| `Dockerfile`, `docker-compose.yml` | Multi-stage build on `node:22-bookworm-slim`, runtime as the unprivileged `node` user with only `/data` writable; Compose requires `HEARTH_DATA_HOST` and bind-mounts it at `/data` (M0). |
+| `src/server/` | Express app factory (`app.ts`), config loader, pino logger with URL redaction, SSE change hints (`events.ts`, `broadcaster.ts`), the migration runner and repositories under `db/`, the seed entrypoint and `main.ts`, the only reader of `process.env`. |
+| `src/server/admin.ts` | Core admin: the 4-digit PIN (scrypt, `pinHash.ts`), in-memory unlock tokens (10 minutes sliding, 60 minutes absolute), the lockout after 5 failures and the `requireAdmin` gate handed to features through the context (M1). |
+| `src/server/settings.ts` | `/api/settings`: the theme times `theme.light_from` and `theme.dark_from` as `HH:MM` (M1). |
+| `src/server/scheduler.ts` | Runs each feature's poll job once after the server listens, then on its interval, with an overlap guard per job (M1). |
+| `src/core/` | The pure core (section 4): zone-aware date math over the Temporal polyfill (`time.ts`), the polyfill-free `localDateText.ts`, `clock.ts`, `theme.ts` (switch evaluation), `personColor.ts`, `changeHint.ts`. |
+| `src/features/` | `types.ts` (the feature contract, type-only), the server and client registries, `calendar/` and the `chores/` stub (M2). |
+| `src/features/calendar/` | The M1 feature: `SecretUrl`, the bounded fetcher, the ical.js provider with recurrence expansion (`provider.ts`, the only ical.js importer), source and event repositories, the service with its change digest, `feature.server.ts` (migration `calendar#1`, `/api/calendar`, the 10-minute poll job), the admin panel, the Day at a glance tile and the month page. |
+| `src/client/` | The React shell: header clock, bottom nav, tile grid with ghost slots, the router, live updates over SSE with a 5-minute backstop, `useFeatureData`, the theme hook and the stylesheet tokens under `styles/`. |
+| `src/client/admin/` | The `/admin` route: "Set a PIN", the PIN pad, the unlocked core panel (change PIN, theme times, lock now) and each feature's admin panel below it (M1). |
+| `test/` | Cross-cutting tests (DST and zone injection, the client-bundle guard against the polyfill, the ical.js import boundary, palette contrast) and helpers; `test/fixtures/ical/` holds the fictional iCalendar fixtures as `.txt` (section 14). |
+| `docs/adr/` | ADRs: 0001 Temporal polyfill, 0002 epoch-millisecond instants in SQLite, 0003 ical.js, 0004 epoch milliseconds on the wire. |
+| `GLOSSARY.md` | The project vocabulary (see `docs/agents/domain.md`). |
 | `docs/mockups/home-layout.html` | Accepted navigation reference: three views (Home, Calendar, Chores), a tile-grid landing view, and a full-bleed month calendar. Its caption lists what later decisions superseded; section 8 is authoritative where they differ. Its device frame is 1180×820, but the reference viewport is 1112×834 (section 8). |
 | `docs/agents/` | Conventions for the agent skills: issue tracker (GitHub Issues), triage labels, domain docs. |
 | `.claude/skills/`, `.agents/skills/` | Agent skills (see `skills-lock.json`). |
 
-There is no `package.json`, `src/`, `README.md`, `Dockerfile` or `docker-compose.yml` yet.
+Chores (M2) and seasons (M3) do not exist yet beyond the `chores` stub in the registries.
 
 ---
 
@@ -341,6 +358,8 @@ Acceptance:
 - `docker compose up` serves the shell on port 4400, and the container fails to start when `HEARTH_DATA_HOST` is unset.
 
 ### M1: Calendar (goes on the wall)
+
+Status: built on PR #24 (spec #14, tickets #15 to #23); the functional verification record is in that PR's description.
 
 Build:
 - The `CalendarProvider` interface and an iCal implementation.
