@@ -2,6 +2,7 @@ import { chmodSync, existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it, onTestFinished } from 'vitest';
+import { isValidZone } from '../core/time.js';
 import { loadConfig } from './config.js';
 
 /** A fresh, empty directory for one test, removed afterwards. */
@@ -107,6 +108,22 @@ describe('loadConfig', () => {
     const result = loadConfig({ TZ: zone }, { cwd: tempDir() });
 
     expect(result.ok && result.config.zone).toBe(zone);
+  });
+
+  it.each([
+    'America/Chicago',
+    'america/chicago',
+    'Asia/Calcutta',
+    'Etc/GMT+5',
+    '-06:00',
+    '+0530',
+    ' America/Chicago',
+    '2026-01-01T00:00[America/Chicago]',
+    'Mars/Base',
+  ])('accepts TZ=%j exactly when the date core does', (zone) => {
+    const result = loadConfig({ TZ: zone }, { cwd: tempDir() });
+
+    expect(result.ok).toBe(isValidZone(zone));
   });
 
   it('rejects an unknown LOG_LEVEL', () => {

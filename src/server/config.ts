@@ -1,5 +1,6 @@
 import { accessSync, constants, mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { isValidZone } from '../core/time.js';
 import { LOG_LEVELS } from './logger.js';
 import type { LogLevel } from './logger.js';
 
@@ -58,7 +59,8 @@ export function loadConfig(env: Env, options: LoadConfigOptions): ConfigResult {
   }
 
   const zone = read('TZ');
-  if (!isIanaZone(zone)) {
+  // The date core's own rule: boot accepts exactly the zones it can use.
+  if (!isValidZone(zone)) {
     errors.push(`TZ must be a valid IANA time zone such as America/Chicago (got "${zone}").`);
   }
 
@@ -81,17 +83,6 @@ function parsePort(raw: string): number | undefined {
 
 function parseLogLevel(raw: string): LogLevel | undefined {
   return LOG_LEVELS.find((level) => level === raw);
-}
-
-function isIanaZone(zone: string): boolean {
-  try {
-    // Throws RangeError for an unknown zone. Offsets like "+05:00" are
-    // accepted by Intl but are not IANA zones, and have no DST rules.
-    new Intl.DateTimeFormat('en-US', { timeZone: zone });
-  } catch {
-    return false;
-  }
-  return !/^[+-]/.test(zone);
 }
 
 /** Returns why `dir` is unusable, or undefined when it is a writable directory. */

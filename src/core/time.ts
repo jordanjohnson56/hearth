@@ -42,6 +42,22 @@ function toZoned(instant: Date, zone: string): Temporal.ZonedDateTime {
   return zoned;
 }
 
+/**
+ * Whether `zone` is a zone the date core accepts: a bare IANA name such as
+ * `America/Chicago` (any case, links included), never a fixed offset or an
+ * ISO string. The config loader checks TZ with this, so boot accepts exactly
+ * what localDate and weekStart accept.
+ */
+export function isValidZone(zone: string): boolean {
+  try {
+    toZoned(new Date(0), zone);
+    return true;
+  } catch (error) {
+    if (error instanceof InvalidTimeZoneError) return false;
+    throw error;
+  }
+}
+
 /** The calendar date of `instant` on the wall in `zone`. */
 export function localDate(instant: Date, zone: string): LocalDate {
   return toZoned(instant, zone).toPlainDate().toString() as LocalDate;

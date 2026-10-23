@@ -3,6 +3,10 @@
 // in sync). Under `npm run dev` the Vite plugin in vite.config.ts injects it
 // from the same config loader.
 
+// Only a guard for a missing or mangled meta tag: the server injects a zone
+// its config loader already checked with the core's isValidZone
+// (src/core/time.ts). Kept on Intl, which the clock uses anyway, so the
+// client bundle does not pull in the Temporal polyfill for one check.
 function isKnownZone(zone: string): boolean {
   try {
     new Intl.DateTimeFormat(undefined, { timeZone: zone });

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { InvalidInstantError, InvalidTimeZoneError, localDate, weekStart } from './time.js';
+import {
+  InvalidInstantError,
+  InvalidTimeZoneError,
+  isValidZone,
+  localDate,
+  weekStart,
+} from './time.js';
 
 const CHICAGO = 'America/Chicago';
 const HOUR_MS = 3_600_000;
@@ -122,6 +128,19 @@ describe('malformed input', () => {
 
     it.each(['UTC', 'america/chicago', 'Asia/Calcutta'])('accepts the IANA name %s', (zone) => {
       expect(() => fn(anInstant, zone)).not.toThrow();
+    });
+  });
+
+  describe('isValidZone', () => {
+    it.each(['Mars/Base', '', ' America/Chicago', '-06:00', '2026-01-01T00:00[America/Chicago]'])(
+      'rejects %j, as localDate does',
+      (zone) => {
+        expect(isValidZone(zone)).toBe(false);
+      },
+    );
+
+    it.each(['UTC', 'america/chicago', 'Asia/Calcutta', CHICAGO])('accepts %s', (zone) => {
+      expect(isValidZone(zone)).toBe(true);
     });
   });
 
