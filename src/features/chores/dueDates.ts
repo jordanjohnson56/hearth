@@ -1,7 +1,7 @@
 // Due-date expansion for a recurrence rule (docs/adr/0005): pure local-date
 // arithmetic, with no times and no zones. "Today" is the boundary's job
 // (the configured zone's local date of the injected now).
-import { addDays, addMonths, endOfMonth, startOfMonth, weekdayOf } from '../../core/time.js';
+import { addDays, addMonths, daysBetween, endOfMonth, startOfMonth, weekdayOf } from '../../core/time.js';
 import type { LocalDate } from '../../core/time.js';
 import { WEEKDAYS } from './rule.js';
 import type { RecurrenceRule } from './rule.js';
@@ -24,6 +24,32 @@ export function dueDates(rule: RecurrenceRule, start: LocalDate, through: LocalD
       return monthly(rule.day, start, through);
     case 'whenever':
       return [];
+  }
+}
+
+/**
+ * The first due date of `rule` (counted from `start`) on or after `from`,
+ * or undefined for a whenever rule. Same dates as `dueDates`, found without
+ * walking from the start date, so a chore started years ago costs no more.
+ */
+export function nextDueDate(rule: RecurrenceRule, start: LocalDate, from: LocalDate): LocalDate | undefined {
+  const first = from > start ? from : start;
+  switch (rule.kind) {
+    case 'daily':
+      return first;
+    case 'every': {
+      const step = rule.unit === 'weeks' ? rule.interval * 7 : rule.interval;
+      const steps = Math.ceil(daysBetween(start, first) / step);
+      return addDays(start, steps * step);
+    }
+    case 'weekly':
+      // Some chosen weekday falls within any seven days.
+      return dueDates(rule, first, addDays(first, 6))[0];
+    case 'monthly':
+      // The day (or the month's last day) falls in this month or the next.
+      return monthly(rule.day, first, endOfMonth(addMonths(startOfMonth(first), 1)))[0];
+    case 'whenever':
+      return undefined;
   }
 }
 
