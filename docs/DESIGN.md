@@ -175,6 +175,7 @@ export interface ClientFeature {
   name: string;
   tile?: { component: FC; size: 'sm' | 'wide' };
   page?: { component: FC; icon: string };
+  admin?: { component: FC };                      // panel under the core /admin panel
 }
 ```
 

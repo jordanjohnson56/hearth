@@ -95,9 +95,10 @@ instance (ambiguous with a RECURRENCE-ID override), expansion.
 
 **Secret URL** (secret address): the iCal address of a source. A bearer
 credential to the whole calendar: it exists as a string only in the admin
-request body and the fetcher, and everywhere else as a `SecretUrl` whose
-string form is the fingerprint (host plus a short hash). It lives only in
-the database. _Avoid_: feed URL, link.
+request body, the secret-table writes and the fetcher's request, and
+everywhere else as a `SecretUrl` whose string form is the fingerprint (host
+plus a short hash). It lives only in the database, in its own table that
+the source row mapper never selects. _Avoid_: feed URL, link.
 
 **Stale**: the newest successful fetch across every source is older than 60
 minutes. A source that has never succeeded is "not yet fetched", not stale.

@@ -3,7 +3,7 @@
 //
 // Contract (status codes):
 //   GET    /events?from&to       200 { events, sources, newestSuccessAt };
-//                                400 bad dates, from > to, span over 92 days
+//                                400 bad dates, from > to, over 92 inclusive dates
 //   GET    /sources              200 { sources } (never the address)
 //   POST   /sources              201 source after its first fetch; 400 bad
 //                                field; 409 duplicate label; 401 no bearer
@@ -210,8 +210,9 @@ function eventsRange(req: Request): { from: LocalDate; to: LocalDate } {
   if (to === undefined) throw new HttpError(400, 'to must be a date as YYYY-MM-DD');
   const span = daysBetween(from, to);
   if (span < 0) throw new HttpError(400, 'from must not be after to');
+  // 92 inclusive local dates: a span of 91 is the longest allowed.
   if (span >= MAX_EVENTS_SPAN_DAYS) {
-    throw new HttpError(400, `from and to may span at most ${MAX_EVENTS_SPAN_DAYS} days`);
+    throw new HttpError(400, `from and to may span at most ${MAX_EVENTS_SPAN_DAYS} days, both included`);
   }
   return { from, to };
 }

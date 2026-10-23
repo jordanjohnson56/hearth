@@ -80,9 +80,9 @@ Zone handling, given that ical.js ships no zone database:
   auto-related across UIDs. The scan runs from `DTSTART` (or, for a
   `DAILY`/`WEEKLY` rule without `COUNT`, from a whole number of periods
   before the window, since `iterator(start)` re-bases a rule rather than
-  skipping ahead) and stops once an instance starts after the window; a
+  skipping ahead) and stops once an occurrence starts after the window; a
   master past 10,000 iterations is skipped and counted. An override whose
-  original instance lies outside the scan is still shown at its new time.
+  original occurrence lies outside the scan is still shown at its new time.
   An override with no master in the feed (an orphan) is shown as a single
   event, as Google Calendar does. Every occurrence of a recurring event
   carries its recurrence id, so `uid` plus `recurrenceId` names an

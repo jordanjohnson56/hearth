@@ -134,7 +134,7 @@ function instantWindow(options: ParseOptions): InstantWindow {
   return { from: options.from, toExclusive: addDays(options.to, 1), start, end, zone: options.zone };
 }
 
-/** One instance of an event, still in ical.js terms. */
+/** One occurrence of an event, still in ical.js terms. */
 interface Occurrence {
   uid: string;
   recurrenceId: ICAL.Time | null;
@@ -165,7 +165,7 @@ function occurrencesOf(group: UidGroup, window: InstantWindow): Occurrence[] {
   let count = 0;
   let time: ICAL.Time | undefined;
   while ((time = iterator.next() as ICAL.Time | undefined)) {
-    // An unbounded rule never completes: stop once the instance itself
+    // An unbounded rule never completes: stop once the occurrence itself
     // starts after the window. The cap is for a rule that is wrong rather
     // than long (a per-minute rule): the whole event is skipped and counted.
     if (count++ >= MAX_OCCURRENCES) throw new Error('too many occurrences');
@@ -175,7 +175,7 @@ function occurrencesOf(group: UidGroup, window: InstantWindow): Occurrence[] {
     const found = occurrence(group.uid, details.item, details.recurrenceId, details.startDate, details.endDate, window);
     if (keep(found, window)) occurrences.push(found);
   }
-  // An override moves its instance in time, possibly from outside the scan
+  // An override moves its occurrence in time, possibly from outside the scan
   // (after the window, or before an expansion start) to inside it.
   for (const exception of group.exceptions) {
     if (!visited.has(exception)) occurrences.push(...singleOccurrence(group.uid, exception, window));
@@ -184,7 +184,7 @@ function occurrencesOf(group: UidGroup, window: InstantWindow): Occurrence[] {
 }
 
 /**
- * What getOccurrenceDetails returns: the instance's own time, and the
+ * What getOccurrenceDetails returns: the occurrence's own time, and the
  * override (with its moved start and end) when one replaces it, else the
  * master. Declared here because the package's typing of it does not
  * resolve under NodeNext.
@@ -222,7 +222,7 @@ function expansionStart(event: ICAL.Event, window: InstantWindow): ICAL.Time | u
   return from;
 }
 
-/** Whether the instance at `time` begins after the window ends. */
+/** Whether the occurrence at `time` begins after the window ends. */
 function startsAfter(time: ICAL.Time, window: InstantWindow): boolean {
   if (time.isDate) return dateOf(time) >= window.toExclusive;
   return instantOf(time, window.zone) >= window.end;
@@ -253,7 +253,7 @@ function occurrence(
   return { uid, recurrenceId, item, start, end, zone: window.zone };
 }
 
-/** An instance counts when it is not cancelled and overlaps the window. */
+/** An occurrence counts when it is not cancelled and overlaps the window. */
 function keep(occurrence: Occurrence, window: InstantWindow): boolean {
   return !isCancelled(occurrence.item.component) && inWindow(timingOf(occurrence), window);
 }

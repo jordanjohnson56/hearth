@@ -1,7 +1,10 @@
 // The iCal secret address as a value that cannot leak by accident. The raw
-// string exists in two places only: the admin request body on the way in
-// (parsed here) and the fetcher on the way out (reveal()). Everything in
-// between (rows, logs, responses, errors) sees the fingerprint.
+// string exists in three places: the admin request body on the way in
+// (parsed here), the two writes to calendar_source_secret in
+// sourceRepository.ts (reveal()) and the fetcher's outbound request
+// (reveal()). readSourceSecret is the one read of that table and parses the
+// column straight back into a SecretUrl; the source row mapper never selects
+// it. Everything else (rows, logs, responses, errors) sees the fingerprint.
 import { createHash } from 'node:crypto';
 
 /** Bad input; the message is written for the client and never repeats the input. */
@@ -54,7 +57,7 @@ export class SecretUrl {
     return new SecretUrl(url.href);
   }
 
-  /** The address itself. Only the fetcher calls this. */
+  /** The address itself. Called by the fetcher and the secret-table writes only (test/revealBoundary.test.ts). */
   reveal(): string {
     return this.#raw;
   }

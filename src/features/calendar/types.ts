@@ -17,8 +17,8 @@ export type EventTiming =
 export type ParsedEvent = {
   uid: string;
   /**
-   * Which instance of a recurring event this is: its RECURRENCE-ID as the
-   * feed would write it (an override's, when one replaces the instance).
+   * Which occurrence of a recurring event this is: its RECURRENCE-ID as the
+   * feed would write it (an override's, when one replaces the occurrence).
    * Null for a single event. With the uid it tells occurrences apart.
    */
   recurrenceId: string | null;

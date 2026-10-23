@@ -1,7 +1,9 @@
 // Fetches a feed over the injected fetch with the bounds the spec sets: a
-// timeout, a body cap, at most two redirects, https on every hop. The only
-// module that calls SecretUrl.reveal(). A failure is a classification and
-// nothing else: the underlying error may quote the address.
+// timeout, a body cap, at most two redirects, https on every hop. Calls
+// SecretUrl.reveal() for the outbound request; the only other callers are
+// the source repository's two secret-table writes (test/revealBoundary.test.ts
+// pins the call sites). A failure is a classification and nothing else: the
+// underlying error may quote the address.
 import type { SecretUrl } from './secretUrl.js';
 import type { FetchFailure } from './types.js';
 

@@ -480,7 +480,7 @@ describe('GET /api/calendar/events', () => {
 });
 
 describe('recurring feeds through the events route', () => {
-  it('serves the expanded occurrences of a weekly Chicago event, with the DST shift and one row per instance', async () => {
+  it('serves the expanded occurrences of a weekly Chicago event, with the DST shift and one row per occurrence', async () => {
     const h = await harness({ [ADA_URL]: () => feedResponse(icalFixture('rrule-weekly-dst')) });
     await addSource(h);
 
