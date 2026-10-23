@@ -60,7 +60,15 @@ export function followLink(event: MouseEvent<HTMLAnchorElement>): void {
   event.preventDefault();
   // Query and fragment included: `/calendar?view=week` from `/calendar` is
   // a navigation, and pushState must keep them.
-  const target = link.pathname + link.search + link.hash;
+  navigate(link.pathname + link.search + link.hash);
+}
+
+/**
+ * Changes the route to `target` (path, query and fragment) without a page
+ * load, as a click on an in-app link does. For controls that cannot be
+ * links, such as a disabled-at-the-edge button.
+ */
+export function navigate(target: string): void {
   const { pathname, search, hash } = window.location;
   if (target !== pathname + search + hash) {
     window.history.pushState(null, '', target);

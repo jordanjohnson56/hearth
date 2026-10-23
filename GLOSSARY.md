@@ -22,7 +22,7 @@ object.
 **Week**: Monday 00:00 local to the following Monday 00:00 local in the
 configured zone. A week containing a DST transition lasts 167 or 169 hours,
 and that is correct. The month grid's Sunday-first rows are a display
-choice and do not change this.
+choice; Week remains the Monday scoring week.
 
 **Week start**: the instant at which a week begins. If Monday 00:00 does not
 exist in the zone (a DST gap at midnight), it is the first instant of that

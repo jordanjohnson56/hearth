@@ -17,11 +17,14 @@ export interface FeatureData<T> {
  * A feature's data: fetched on mount, again on every change hint for
  * `featureId` and on the 5-minute backstop, and on demand. A fetch still
  * in flight when the next starts is aborted, so results never arrive out
- * of order. `fetcher` gets the abort signal to pass to fetch.
+ * of order. `fetcher` gets the abort signal to pass to fetch. A page whose
+ * request follows the URL (the month grid) passes the part that varies as
+ * `key`: a change of key fetches again, like mounting afresh.
  */
 export function useFeatureData<T>(
   featureId: FeatureId,
   fetcher: (signal: AbortSignal) => Promise<T>,
+  key?: string,
 ): FeatureData<T> {
   const [data, setData] = useState<T | undefined>(undefined);
   const [error, setError] = useState<string | undefined>(undefined);
@@ -59,7 +62,7 @@ export function useFeatureData<T>(
       unregister();
       inFlight.current?.abort();
     };
-  }, [featureId, refetch]);
+  }, [featureId, key, refetch]);
 
   return { data, error, fetchedAt, refetch };
 }
