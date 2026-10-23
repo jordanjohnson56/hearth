@@ -217,8 +217,11 @@ function expansionStart(event: ICAL.Event, window: InstantWindow): ICAL.Time | u
   const periodMs = periodDays * 86_400_000;
   const periods = Math.floor((window.start.getTime() - instantOf(start, window.zone).getTime()) / periodMs) - 2;
   if (periods <= 0) return undefined;
+  // adjust(), not `day +=`: a bare field write leaves the Time unnormalized,
+  // clone() copies it raw and the iterator then lands on the wrong week of
+  // an INTERVAL=2 rule (provider.test.ts pins the parity).
   const from = start.clone();
-  from.day += periods * periodDays;
+  from.adjust(periods * periodDays, 0, 0, 0);
   return from;
 }
 

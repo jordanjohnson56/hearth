@@ -325,6 +325,34 @@ describe('parseFeed: recurrence', () => {
       ]);
     });
 
+    it('WEEKLY with INTERVAL=2 and a UTC UNTIL against a TZID start, inclusive of the occurrence at exactly UNTIL', () => {
+      const autumn = { from: '2026-09-01' as LocalDate, to: '2026-11-30' as LocalDate, zone: CHICAGO };
+      // 17:00 Chicago is 22:00Z in CDT and 23:00Z in CST; UNTIL names the Nov 2 occurrence exactly.
+      expect(starts('rrule-weekly-interval-until', 'biweekly-until@cal.example', autumn)).toEqual([
+        ['2026-09-07T17:00:00', '2026-09-07T22:00:00.000Z'],
+        ['2026-09-21T17:00:00', '2026-09-21T22:00:00.000Z'],
+        ['2026-10-05T17:00:00', '2026-10-05T22:00:00.000Z'],
+        ['2026-10-19T17:00:00', '2026-10-19T22:00:00.000Z'],
+        ['2026-11-02T17:00:00', '2026-11-02T23:00:00.000Z'],
+      ]);
+    });
+
+    it('an unbounded WEEKLY INTERVAL=2 rule that began years ago keeps its week parity', () => {
+      // Mondays every other week from 2024-01-08: Aug 31, Sep 14 and Sep 28 2026 are on the series, Sep 7 and 21 are not.
+      expect(starts('rrule-weekly-interval-until', 'biweekly-since-2024@cal.example')).toEqual([
+        ['2026-09-14T08:00:00', '2026-09-14T13:00:00.000Z'],
+        ['2026-09-28T08:00:00', '2026-09-28T13:00:00.000Z'],
+      ]);
+      expect(parseFeed(icalFixture('rrule-weekly-interval-until'), september).skipped).toBe(0);
+    });
+
+    it('YEARLY with a UTC UNTIL that lands on the occurrence exactly, so the year after is left out', () => {
+      // 09:00 CDT on Aug 15 is 14:00Z, the UNTIL instant; 2027 would be in the window otherwise.
+      expect(starts('rrule-yearly', 'yearly-until@cal.example', WINDOW)).toEqual([
+        ['2026-08-15T09:00:00', '2026-08-15T14:00:00.000Z'],
+      ]);
+    });
+
     it('YEARLY all-day, with INTERVAL, and with COUNT', () => {
       expect(starts('rrule-yearly', 'birthday@cal.example', WINDOW)).toEqual([['2027-04-03', '2027-04-03..2027-04-04']]);
       expect(starts('rrule-yearly', 'yearly-interval@cal.example', WINDOW)).toEqual([
