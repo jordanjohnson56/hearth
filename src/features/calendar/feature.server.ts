@@ -171,14 +171,24 @@ function createRouter(ctx: FeatureContext): Router {
 
 /**
  * The poll job: every source, every 10 minutes and once at boot, each
- * fetched on its own. #19 adds the change digest and the hint.
+ * fetched on its own; a hint when any source's events changed. A fetch
+ * problem is a classification on the source; anything else (the database
+ * gone, say) is logged here and the run still resolves, so the scheduler
+ * sees nothing and polls again next tick.
  */
 function createJob(ctx: FeatureContext): FeatureJob {
   const service = serviceFor(ctx);
   return {
     name: 'calendar poll',
     intervalMs: POLL_INTERVAL_MS,
-    run: () => service.refreshAll(),
+    async run() {
+      try {
+        await service.refreshAll();
+      } catch (err) {
+        // The err serializer redacts URLs in the message; nothing else here could carry one.
+        ctx.logger.error({ err }, 'calendar poll failed');
+      }
+    },
   };
 }
 

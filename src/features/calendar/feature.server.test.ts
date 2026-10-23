@@ -600,6 +600,69 @@ describe('change hints and the poll job', () => {
     expect(h.hints).toEqual(['calendar']);
   });
 
+  it('keeps a failing source\'s previous events and classification while the other source updates', async () => {
+    let adaFeed = icalFixture('single-events');
+    let marieDown = false;
+    const h = await pollingHarness({
+      [ADA_URL]: () => feedResponse(adaFeed),
+      [MARIE_URL]: () => (marieDown ? Promise.reject(networkError(MARIE_URL)) : feedResponse(icalFixture('edge-cases'))),
+    });
+    await addSource(h);
+    await addSource(h, { label: 'Marie', color: 'lake', url: MARIE_URL });
+    h.hints.length = 0;
+    h.advance(600_000);
+    adaFeed = adaFeed.replace('SUMMARY:Ada dentist', 'SUMMARY:Ada dentist (moved)');
+    marieDown = true;
+
+    await h.poll();
+
+    expect(await listSources(h)).toMatchObject([
+      { label: 'Ada', lastError: null, lastSuccessAt: NOW.getTime() + 600_000, lastAttemptAt: NOW.getTime() + 600_000 },
+      { label: 'Marie', lastError: 'network', lastSuccessAt: NOW.getTime(), lastAttemptAt: NOW.getTime() + 600_000 },
+    ]);
+    const events = (await eventsBetween(h, '2026-10-24', '2026-10-25')).body as { events: { sourceId: number; title: string }[] };
+    expect(events.events.map((e) => [e.sourceId, e.title])).toEqual([
+      [1, 'Linus no school'],
+      [2, 'Marie late flight'],
+      [1, 'Ada dentist (moved)'],
+    ]);
+    expect(h.hints).toEqual(['calendar']);
+    expect(h.text()).not.toContain('cal.example/');
+  });
+
+  it('slides the window on each poll: occurrences that left are removed, those that entered are added', async () => {
+    const h = await pollingHarness({ [ADA_URL]: () => feedResponse(icalFixture('window-edges')) });
+    await addSource(h);
+    const titlesOn = async (day: string) =>
+      ((await eventsBetween(h, day, day)).body as { events: { title: string }[] }).events.map((e) => e.title);
+    expect(await titlesOn('2026-07-01')).toEqual(['Straddles the window start', 'First window day', 'Crosses the window start']);
+    // The last window day's event runs 23:30 to 00:30, so it overlaps Nov 1 as well.
+    expect(await titlesOn('2027-11-01')).toEqual(['Last window day']);
+    h.hints.length = 0;
+
+    // A month on: the window is 2026-08-01 .. 2027-11-30.
+    h.advance(31 * 24 * 3_600_000);
+    await h.poll();
+
+    expect(await titlesOn('2026-07-01')).toEqual([]);
+    expect(await titlesOn('2027-11-01')).toEqual(['All day after the window', 'Last window day', 'Day after the window']);
+    expect(h.hints).toEqual(['calendar']);
+  });
+
+  it('resolves and logs, without the address, when a poll fails outside a fetch', async () => {
+    const h = await pollingHarness({ [ADA_URL]: () => feedResponse(icalFixture('single-events')) });
+    await addSource(h);
+    // The database going away under the job is the kind of error no fetch classification covers.
+    h.db.close();
+
+    await expect(h.poll()).resolves.toBeUndefined();
+
+    const failures = h.lines().filter((line) => line['msg'] === 'calendar poll failed');
+    expect(failures).toHaveLength(1);
+    expect(failures[0]).toMatchObject({ level: 50, err: { message: expect.any(String) as string } });
+    expect(h.text()).not.toContain('cal.example/');
+  });
+
   it('publishes no hint when a poll fails, since the rows did not change', async () => {
     let attempt = 0;
     const h = await pollingHarness({
