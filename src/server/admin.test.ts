@@ -3,6 +3,7 @@ import type { Express } from 'express';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import type { FeatureContext, ServerFeature } from '../features/types.js';
+import { setPin, unlock } from '../../test/helpers/admin.js';
 import { testApp, testAppOptions } from '../../test/helpers/app.js';
 import { captureLogger } from '../../test/helpers/logger.js';
 import { PIN_HASH_SETTING } from './admin.js';
@@ -38,15 +39,10 @@ function clock(start = '2026-10-23T12:00:00Z'): { now: () => Date; advance: (ms:
 
 const MINUTE = 60_000;
 
-async function unlock(app: Express, pin = '1234'): Promise<string> {
-  const res = await request(app).post('/api/admin/unlock').send({ pin });
-  return (res.body as { token: string }).token;
-}
-
 /** An app with PIN 1234 set the way the first-run form sets it. */
 async function appWithPin(overrides: Parameters<typeof testApp>[0] = {}): Promise<Express> {
   const app = testApp(overrides);
-  await request(app).put('/api/admin/pin').send({ pin: '1234' });
+  await setPin(app);
   return app;
 }
 

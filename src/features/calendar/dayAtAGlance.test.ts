@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { allDay, timed } from '../../../test/helpers/wireEvents.js';
 import { stalenessLine, todaysEvents } from './dayAtAGlance.js';
 import type { CalendarEventWire, EventsResponse } from './types.js';
 
@@ -9,36 +10,6 @@ const NOON_ISH = new Date('2026-10-23T19:00:00Z');
 const ADA = { id: 1, label: 'Ada', color: 'lake' } as const;
 const LINUS = { id: 2, label: 'Linus', color: 'moss' } as const;
 
-let nextId = 1;
-
-function timed(title: string, start: string, end: string, sourceId = ADA.id): CalendarEventWire {
-  return {
-    id: nextId++,
-    sourceId,
-    uid: `${title}@cal.example`,
-    recurrenceId: null,
-    title,
-    location: null,
-    kind: 'timed',
-    startAt: Date.parse(start),
-    endAt: Date.parse(end),
-  };
-}
-
-function allDay(title: string, startDate: string, endDate: string, sourceId = ADA.id): CalendarEventWire {
-  return {
-    id: nextId++,
-    sourceId,
-    uid: `${title}@cal.example`,
-    recurrenceId: null,
-    title,
-    location: null,
-    kind: 'allDay',
-    startDate,
-    endDate,
-  };
-}
-
 function response(events: CalendarEventWire[]): EventsResponse {
   return { events, sources: [ADA, LINUS], newestSuccessAt: NOON_ISH.getTime() };
 }
@@ -47,9 +18,9 @@ describe('todaysEvents', () => {
   it('lists all-day events first, then timed events by start', () => {
     const shown = todaysEvents(
       response([
-        timed('Dentist', '2026-10-23T15:00:00-05:00', '2026-10-23T16:00:00-05:00'),
-        allDay('No school', '2026-10-23', '2026-10-24'),
-        timed('Breakfast', '2026-10-23T07:30:00-05:00', '2026-10-23T08:00:00-05:00'),
+        timed('2026-10-23T15:00:00-05:00', '2026-10-23T16:00:00-05:00', { title: 'Dentist' }),
+        allDay('2026-10-23', '2026-10-24', { title: 'No school' }),
+        timed('2026-10-23T07:30:00-05:00', '2026-10-23T08:00:00-05:00', { title: 'Breakfast' }),
       ]),
       NOON_ISH,
       CHICAGO,
@@ -60,7 +31,7 @@ describe('todaysEvents', () => {
 });
 
 describe('todaysEvents: which day an event belongs to', () => {
-  const flight = timed('Late flight', '2026-10-23T21:00:00-05:00', '2026-10-24T01:00:00-05:00');
+  const flight = timed('2026-10-23T21:00:00-05:00', '2026-10-24T01:00:00-05:00', { title: 'Late flight' });
   const titles = (events: CalendarEventWire[], now: Date) =>
     todaysEvents(response(events), now, CHICAGO).map((event) => event.title);
 
@@ -72,18 +43,18 @@ describe('todaysEvents: which day an event belongs to', () => {
 
   it('leaves out events on other days, judged in the configured zone', () => {
     // 2026-10-24 00:30 CDT is 05:30Z: the tomorrow of the Chicago wall, not of UTC.
-    const tomorrowEarly = timed('Early run', '2026-10-24T00:30:00-05:00', '2026-10-24T01:00:00-05:00');
-    const yesterday = allDay('Yesterday', '2026-10-22', '2026-10-23');
+    const tomorrowEarly = timed('2026-10-24T00:30:00-05:00', '2026-10-24T01:00:00-05:00', { title: 'Early run' });
+    const yesterday = allDay('2026-10-22', '2026-10-23', { title: 'Yesterday' });
     expect(titles([tomorrowEarly, yesterday], NOON_ISH)).toEqual([]);
   });
 
   it('does not put an event ending exactly at midnight on the next day', () => {
-    const party = timed('Party', '2026-10-22T20:00:00-05:00', '2026-10-23T00:00:00-05:00');
+    const party = timed('2026-10-22T20:00:00-05:00', '2026-10-23T00:00:00-05:00', { title: 'Party' });
     expect(titles([party], NOON_ISH)).toEqual([]);
   });
 
   it('shows a multi-day all-day event on every day up to its exclusive end', () => {
-    const camp = allDay('Camp', '2026-10-21', '2026-10-24');
+    const camp = allDay('2026-10-21', '2026-10-24', { title: 'Camp' });
     expect(titles([camp], NOON_ISH)).toEqual(['Camp']);
     expect(titles([camp], new Date('2026-10-24T15:00:00Z'))).toEqual([]);
   });
@@ -94,10 +65,10 @@ describe('todaysEvents: what is over', () => {
     const at14 = new Date('2026-10-23T19:00:00Z');
     const shown = todaysEvents(
       response([
-        timed('Breakfast', '2026-10-23T07:30:00-05:00', '2026-10-23T08:00:00-05:00'),
-        timed('Lunch', '2026-10-23T13:00:00-05:00', '2026-10-23T14:00:00-05:00'),
-        timed('Call', '2026-10-23T13:30:00-05:00', '2026-10-23T14:30:00-05:00'),
-        timed('Dentist', '2026-10-23T15:00:00-05:00', '2026-10-23T16:00:00-05:00'),
+        timed('2026-10-23T07:30:00-05:00', '2026-10-23T08:00:00-05:00', { title: 'Breakfast' }),
+        timed('2026-10-23T13:00:00-05:00', '2026-10-23T14:00:00-05:00', { title: 'Lunch' }),
+        timed('2026-10-23T13:30:00-05:00', '2026-10-23T14:30:00-05:00', { title: 'Call' }),
+        timed('2026-10-23T15:00:00-05:00', '2026-10-23T16:00:00-05:00', { title: 'Dentist' }),
       ]),
       at14,
       CHICAGO,
@@ -113,15 +84,15 @@ describe('todaysEvents: what is over', () => {
 
   it('never dims an all-day event on a day it covers', () => {
     const lateEvening = new Date('2026-10-24T04:30:00Z'); // 23:30 CDT on the 23rd
-    const [event] = todaysEvents(response([allDay('No school', '2026-10-23', '2026-10-24')]), lateEvening, CHICAGO);
+    const [event] = todaysEvents(response([allDay('2026-10-23', '2026-10-24', { title: 'No school' })]), lateEvening, CHICAGO);
     expect(event?.over).toBe(false);
   });
 });
 
 describe('todaysEvents: how a timed span relates to today', () => {
-  const flight = timed('Late flight', '2026-10-23T21:00:00-05:00', '2026-10-24T01:00:00-05:00');
-  const retreat = timed('Retreat', '2026-10-22T18:00:00-05:00', '2026-10-24T12:00:00-05:00');
-  const dentist = timed('Dentist', '2026-10-23T15:00:00-05:00', '2026-10-23T16:00:00-05:00');
+  const flight = timed('2026-10-23T21:00:00-05:00', '2026-10-24T01:00:00-05:00', { title: 'Late flight' });
+  const retreat = timed('2026-10-22T18:00:00-05:00', '2026-10-24T12:00:00-05:00', { title: 'Retreat' });
+  const dentist = timed('2026-10-23T15:00:00-05:00', '2026-10-23T16:00:00-05:00', { title: 'Dentist' });
   const timingOf = (event: CalendarEventWire, now: Date) =>
     todaysEvents(response([event]), now, CHICAGO)[0]?.timing;
 
@@ -147,7 +118,7 @@ describe('todaysEvents: how a timed span relates to today', () => {
   });
 
   it('is all-day for an all-day event', () => {
-    expect(timingOf(allDay('No school', '2026-10-23', '2026-10-24'), NOON_ISH)).toEqual({ kind: 'allDay' });
+    expect(timingOf(allDay('2026-10-23', '2026-10-24', { title: 'No school' }), NOON_ISH)).toEqual({ kind: 'allDay' });
   });
 });
 

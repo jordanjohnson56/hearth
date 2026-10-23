@@ -9,6 +9,7 @@ import {
   parseMonthPath,
   splitPills,
 } from './monthGrid.js';
+import { allDay, timed } from '../../../test/helpers/wireEvents.js';
 import type { CalendarEventWire } from './types.js';
 
 describe('monthGrid', () => {
@@ -51,29 +52,11 @@ describe('monthGrid', () => {
 
 const CHICAGO = 'America/Chicago';
 
-function allDay(id: number, startDate: string, endDate: string): CalendarEventWire {
-  return { id, sourceId: 1, uid: `u${String(id)}`, recurrenceId: null, title: `Event ${String(id)}`, location: null, kind: 'allDay', startDate, endDate };
-}
-
-function timed(id: number, startAt: string, endAt: string): CalendarEventWire {
-  return {
-    id,
-    sourceId: 1,
-    uid: `u${String(id)}`,
-    recurrenceId: null,
-    title: `Event ${String(id)}`,
-    location: null,
-    kind: 'timed',
-    startAt: Date.parse(startAt),
-    endAt: Date.parse(endAt),
-  };
-}
-
 const ids = (events: readonly CalendarEventWire[] | undefined) => (events ?? []).map((event) => event.id);
 
 describe('eventsByDate', () => {
   it('puts an all-day event on every date from its start up to its exclusive end', () => {
-    const byDate = eventsByDate([allDay(1, '2026-07-29', '2026-08-05')], CHICAGO);
+    const byDate = eventsByDate([allDay('2026-07-29', '2026-08-05', { id: 1 })], CHICAGO);
     expect(ids(byDate.get('2026-07-28'))).toEqual([]);
     expect(ids(byDate.get('2026-07-29'))).toEqual([1]);
     expect(ids(byDate.get('2026-08-01'))).toEqual([1]);
@@ -83,7 +66,7 @@ describe('eventsByDate', () => {
 
   it('puts a timed event on each local date it touches in the zone', () => {
     // 21:00 to 01:00 Chicago (CDT) is 02:00Z to 06:00Z the next day.
-    const byDate = eventsByDate([timed(2, '2026-08-15T02:00:00Z', '2026-08-15T06:00:00Z')], CHICAGO);
+    const byDate = eventsByDate([timed('2026-08-15T02:00:00Z', '2026-08-15T06:00:00Z', { id: 2 })], CHICAGO);
     expect(ids(byDate.get('2026-08-14'))).toEqual([2]);
     expect(ids(byDate.get('2026-08-15'))).toEqual([2]);
     expect(ids(byDate.get('2026-08-16'))).toEqual([]);
@@ -91,7 +74,7 @@ describe('eventsByDate', () => {
 
   it('does not spill a timed event that ends exactly at midnight onto the next day', () => {
     // 22:00 to 00:00 Chicago.
-    const byDate = eventsByDate([timed(3, '2026-08-21T03:00:00Z', '2026-08-21T05:00:00Z')], CHICAGO);
+    const byDate = eventsByDate([timed('2026-08-21T03:00:00Z', '2026-08-21T05:00:00Z', { id: 3 })], CHICAGO);
     expect(ids(byDate.get('2026-08-20'))).toEqual([3]);
     expect(ids(byDate.get('2026-08-21'))).toEqual([]);
   });
@@ -99,10 +82,10 @@ describe('eventsByDate', () => {
   it('orders a day as all-day events first, then timed by start', () => {
     const byDate = eventsByDate(
       [
-        timed(10, '2026-08-03T20:00:00Z', '2026-08-03T21:00:00Z'),
-        timed(11, '2026-08-03T14:00:00Z', '2026-08-03T15:00:00Z'),
-        allDay(12, '2026-08-03', '2026-08-04'),
-        timed(13, '2026-08-03T03:00:00Z', '2026-08-03T04:00:00Z'),
+        timed('2026-08-03T20:00:00Z', '2026-08-03T21:00:00Z', { id: 10 }),
+        timed('2026-08-03T14:00:00Z', '2026-08-03T15:00:00Z', { id: 11 }),
+        allDay('2026-08-03', '2026-08-04', { id: 12 }),
+        timed('2026-08-03T03:00:00Z', '2026-08-03T04:00:00Z', { id: 13 }),
       ],
       CHICAGO,
     );
@@ -113,7 +96,7 @@ describe('eventsByDate', () => {
 });
 
 describe('splitPills', () => {
-  const five = [1, 2, 3, 4, 5].map((id) => allDay(id, '2026-08-03', '2026-08-04'));
+  const five = [1, 2, 3, 4, 5].map((id) => allDay('2026-08-03', '2026-08-04', { id }));
 
   it('shows at most three pills and counts the rest', () => {
     const { shown, more } = splitPills(five);

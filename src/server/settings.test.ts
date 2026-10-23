@@ -1,18 +1,13 @@
 import type { Express } from 'express';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
+import { setPinAndUnlock } from '../../test/helpers/admin.js';
 import { testApp } from '../../test/helpers/app.js';
-
-async function unlock(app: Express, pin = '1234'): Promise<string> {
-  const res = await request(app).post('/api/admin/unlock').send({ pin });
-  return (res.body as { token: string }).token;
-}
 
 /** An app with PIN 1234 set and an unlocked admin session. */
 async function unlockedApp(): Promise<{ app: Express; token: string }> {
   const app = testApp();
-  await request(app).put('/api/admin/pin').send({ pin: '1234' });
-  return { app, token: await unlock(app) };
+  return { app, token: await setPinAndUnlock(app) };
 }
 
 describe('GET /api/settings/theme', () => {

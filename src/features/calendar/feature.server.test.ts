@@ -1,6 +1,7 @@
 import type { Express } from 'express';
 import request from 'supertest';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { setPinAndUnlock } from '../../../test/helpers/admin.js';
 import { testApp, testAppOptions } from '../../../test/helpers/app.js';
 import { fakeFetch, feedResponse, networkError, timeoutError } from '../../../test/helpers/fetch.js';
 import type { FakeEndpoint } from '../../../test/helpers/fetch.js';
@@ -38,11 +39,9 @@ async function harness(
   const { logger, text, lines } = captureLogger();
   let at = NOW.getTime();
   const app = testApp({ features: [calendarServer], fetch, logger, now: () => new Date(at), ...overrides });
-  await request(app).put('/api/admin/pin').send({ pin: '1234' });
-  const unlocked = await request(app).post('/api/admin/unlock').send({ pin: '1234' });
   return {
     app,
-    token: (unlocked.body as { token: string }).token,
+    token: await setPinAndUnlock(app),
     calls,
     text,
     lines,
@@ -570,11 +569,9 @@ async function pollingHarness(endpoints: Record<string, FakeEndpoint> | FakeEndp
   let at = NOW.getTime();
   const options = testAppOptions({ features: [calendarServer], fetch, logger, broadcaster, now: () => new Date(at) });
   const { app, jobs } = createApp(options);
-  await request(app).put('/api/admin/pin').send({ pin: '1234' });
-  const unlocked = await request(app).post('/api/admin/unlock').send({ pin: '1234' });
   const h: Harness = {
     app,
-    token: (unlocked.body as { token: string }).token,
+    token: await setPinAndUnlock(app),
     calls,
     text,
     lines,
@@ -734,8 +731,7 @@ describe('change hints and the poll job', () => {
     });
     const options = testAppOptions({ features: [calendarServer], fetch, now: () => NOW });
     const { app, jobs } = createApp(options);
-    await request(app).put('/api/admin/pin').send({ pin: '1234' });
-    const { token } = (await request(app).post('/api/admin/unlock').send({ pin: '1234' })).body as { token: string };
+    const token = await setPinAndUnlock(app);
     await request(app).post('/api/calendar/sources').set('Authorization', `Bearer ${token}`).send(ADA);
     await request(app).post('/api/calendar/sources').set('Authorization', `Bearer ${token}`).send({ label: 'Marie', color: 'lake', url: MARIE_URL });
     calls.length = 0;
