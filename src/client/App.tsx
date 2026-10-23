@@ -2,7 +2,10 @@ import type { ReactNode } from 'react';
 import { formatClock } from '../core/clock.js';
 import { clientFeatureList } from '../features/registry.client.js';
 import type { ClientFeature } from '../features/types.js';
+import { AdminPage } from './admin/AdminPage.js';
+import { AdminSessionProvider, useAdminSession } from './admin/session.js';
 import { useLiveUpdates } from './liveUpdates.js';
+import { useTheme } from './theme.js';
 import { followLink, useRoute } from './router.js';
 import type { Route } from './router.js';
 import { useNow } from './useNow.js';
@@ -12,28 +15,37 @@ const zone = configuredZone();
 
 type TileSize = 'sm' | 'wide';
 
-// M0 has no feature tiles yet: dashed placeholders show where they will go.
-// One wide slot and four small ones, as in the accepted mockup.
-const GHOST_SLOTS: readonly TileSize[] = ['wide', 'sm', 'sm', 'sm', 'sm'];
+// Dashed placeholders for future features (DESIGN section 7), after the real
+// tiles. The mockup shows one wide slot and four small ones; the calendar
+// tile took the first small one, so three small ghosts remain.
+const GHOST_SLOTS: readonly TileSize[] = ['wide', 'sm', 'sm', 'sm'];
 
 export function App() {
   useLiveUpdates();
+  useTheme(zone);
   const { path, route } = useRoute();
 
+  // The admin session sits above the router so an unlocked admin stays
+  // unlocked across in-app navigation; a reload still drops it.
   return (
-    <div className="shell">
-      <Header />
-      <main className="shell-main">
-        <View route={route} />
-      </main>
-      <BottomNav path={path} />
-    </div>
+    <AdminSessionProvider>
+      <div className="shell">
+        <Header onAdmin={route.kind === 'admin'} />
+        <main className="shell-main">
+          <View route={route} />
+        </main>
+        <BottomNav path={path} />
+      </div>
+    </AdminSessionProvider>
   );
 }
 
-function Header() {
+function Header({ onAdmin }: { onAdmin: boolean }) {
   const now = useNow();
   const { time, date } = formatClock(now, zone);
+  const { pinStatus } = useAdminSession();
+  // First run: the button says what the page will ask for.
+  const needsPin = pinStatus.kind === 'ready' && !pinStatus.pinSet;
 
   return (
     <header className="shell-header">
@@ -43,10 +55,14 @@ function Header() {
         </time>
         <span className="clock-part">{date}</span>
       </p>
-      {/* Does nothing in M0; the PIN flow comes later. */}
-      <button type="button" className="admin-button">
-        Admin
-      </button>
+      <a
+        className="admin-button"
+        href="/admin"
+        onClick={followLink}
+        aria-current={onAdmin ? 'page' : undefined}
+      >
+        {needsPin ? 'Set a PIN' : 'Admin'}
+      </a>
     </header>
   );
 }
@@ -55,6 +71,8 @@ function View({ route }: { route: Route }) {
   switch (route.kind) {
     case 'home':
       return <Home />;
+    case 'admin':
+      return <AdminPage />;
     case 'feature':
       return <FeaturePage feature={route.feature} />;
     case 'not-found':

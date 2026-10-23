@@ -1,9 +1,8 @@
 import type { IncomingHttpHeaders, IncomingMessage } from 'node:http';
 import request from 'supertest';
 import { describe, expect, it, onTestFinished, vi } from 'vitest';
-import { testAppOptions } from '../../test/helpers/app.js';
+import { testApp } from '../../test/helpers/app.js';
 import { captureLogger } from '../../test/helpers/logger.js';
-import { createApp } from './app.js';
 import { createBroadcaster } from './broadcaster.js';
 import type { Broadcaster } from './broadcaster.js';
 import { KEEPALIVE_INTERVAL_MS } from './events.js';
@@ -26,7 +25,7 @@ interface OpenStream {
  * stream never ends on its own, so the test reads chunks and then aborts.
  */
 async function openEventStream(broadcaster: Broadcaster): Promise<OpenStream> {
-  const app = createApp(testAppOptions({ broadcaster }));
+  const app = testApp({ broadcaster });
   const req = request(app).get('/api/events').buffer(false);
 
   // Queue chunks as they arrive, so none is lost between reads.

@@ -1,0 +1,5 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Sign in</title></head>
+<body><p>You need to sign in to view this calendar.</p></body>
+</html>

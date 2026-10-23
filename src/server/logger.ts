@@ -24,7 +24,9 @@ export type LogLevel = (typeof LOG_LEVELS)[number];
  * error's name, code and message, with every URL in the message cut down to
  * its scheme and host: an iCal secret address is a bearer credential and must
  * never reach a log line (DESIGN.md section 3). Stacks are left out for the
- * same reason, since a stack's first line repeats the message.
+ * same reason, since a stack's first line repeats the message. The message
+ * string of every call gets the same treatment, as belt and braces for a
+ * message built from an error.
  *
  * Never log request bodies or full request/outbound URLs. Log a request by
  * method and path, and a calendar source by its label or id.
@@ -36,6 +38,13 @@ export function createLogger(level: LogLevel, destination?: DestinationStream): 
     base: null,
     timestamp: pino.stdTimeFunctions.isoTime,
     serializers: { err: serializeError },
+    hooks: {
+      logMethod(args, method) {
+        // Every string argument: the message, and its interpolation values.
+        const redacted = args.map((arg) => (typeof arg === 'string' ? redactUrls(arg) : arg));
+        method.apply(this, redacted as Parameters<typeof method>);
+      },
+    },
   };
   return destination === undefined ? pino(options) : pino(options, destination);
 }

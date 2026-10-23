@@ -21,7 +21,8 @@ object.
 
 **Week**: Monday 00:00 local to the following Monday 00:00 local in the
 configured zone. A week containing a DST transition lasts 167 or 169 hours,
-and that is correct.
+and that is correct. The month grid's Sunday-first rows are a display
+choice; Week remains the Monday scoring week.
 
 **Week start**: the instant at which a week begins. If Monday 00:00 does not
 exist in the zone (a DST gap at midnight), it is the first instant of that
@@ -47,6 +48,67 @@ in server registry order.
 **Applied migration**: a migration recorded in the `migration` table with
 its applied-at instant. It ran in one transaction together with that
 record, so a migration is either applied and recorded or neither.
+
+**Feature context**: what the app factory hands a feature's `createRouter`
+and `createJob` once the database is migrated: the database, the
+broadcaster, the logger, the config, `now()`, `fetch` and `requireAdmin`.
+A feature reaches the outside world only through it, so a test can inject
+a clock and a fake network. _Avoid_: globals, service locator.
+
+**Feature job**: a named recurring task a feature builds from its context
+(`{ name, intervalMs, run }`). The scheduler runs it once after the server
+is listening and then every `intervalMs`, skipping a tick while a run is
+still in progress. _Avoid_: cron, poller.
+
+**Admin session**: the time between a successful unlock and a lock, kept
+as an unlock token in the client's memory and the server's. It ends on
+"lock now", 10 minutes after its last use, 60 minutes after unlock, on a
+page reload and on a server restart. _Avoid_: login, logged in.
+
+**Unlock token**: the random bearer credential `POST /api/admin/unlock`
+issues for one admin session; every admin mutation carries it as
+`Authorization: Bearer`. It is never stored anywhere but memory.
+_Avoid_: session cookie, API key.
+
+**Theme times**: the two wall-clock times, light-from and dark-from (`HH:MM`
+in the configured zone), between which the display is light or dark. The
+theme is light from light-from up to dark-from and dark the rest of the day,
+in wall-clock minute order, whichever of the two comes first. _Avoid_:
+night mode, dark mode toggle.
+
+**Calendar source** (source): a labelled, colored iCal feed Hearth polls, with
+a secret URL. Its events are replaced wholesale on each successful fetch;
+a failed fetch keeps the last good ones. _Avoid_: calendar (that is the
+feature), subscription, account.
+
+**Event**: a normalized timed or all-day entry from one source: title,
+location, start and end, in Hearth's own type, never the library's. A timed
+event is an instant range; an all-day event is a local-date range with an
+exclusive end. _Avoid_: appointment, entry.
+
+**Occurrence**: one expanded instance of a recurring event, or a single
+event's only instance. Named by the event's UID plus its recurrence id
+(null for a single event); a RECURRENCE-ID override replaces the
+occurrence it names rather than adding one. Stored rows are occurrences
+within the poll window; the calendar is a view, not a record. _Avoid_:
+instance (ambiguous with a RECURRENCE-ID override), expansion.
+
+**Secret URL** (secret address): the iCal address of a source. A bearer
+credential to the whole calendar: it exists as a string only in the admin
+request body, the secret-table writes and the fetcher's request, and
+everywhere else as a `SecretUrl` whose string form is the fingerprint (host
+plus a short hash). It lives only in the database, in its own table that
+the source row mapper never selects. _Avoid_: feed URL, link.
+
+**Stale**: the newest successful fetch across every source is older than 60
+minutes. A source that has never succeeded is "not yet fetched", not stale.
+_Avoid_: outdated, expired.
+
+**Change digest**: a SHA-256 over a source's stored event set, order
+independent, computed from the rows a refresh replaces and from the rows it
+writes. A poll or refresh publishes the `calendar` change hint only when the
+two differ; an admin add, change or delete publishes one hint on its own.
+_Avoid_: checksum, etag.
 
 **Pending migration**: a migration in the code that the database has not
 recorded as applied. The server applies pending migrations at boot, before

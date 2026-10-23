@@ -1,16 +1,20 @@
 import { readFile } from 'node:fs/promises';
 import { STATUS_CODES } from 'node:http';
 import { join } from 'node:path';
+import type { Database } from 'better-sqlite3';
 import express from 'express';
 import type { ErrorRequestHandler, Express, RequestHandler, Response } from 'express';
 import { serverFeatureList } from '../features/registry.server.js';
-import type { ServerFeature } from '../features/types.js';
+import type { FeatureContext, FeatureJob, ServerFeature } from '../features/types.js';
+import { createAdmin } from './admin.js';
 import { createBroadcaster } from './broadcaster.js';
 import type { Broadcaster } from './broadcaster.js';
 import type { Config } from './config.js';
 import { eventsHandler } from './events.js';
+import { BareHttpError, HttpError } from './http.js';
 import { injectZone } from './index-html.js';
 import type { Logger } from './logger.js';
+import { createSettingsRouter } from './settings.js';
 
 export interface AppOptions {
   /** Directory holding the built client (index.html plus assets). */
@@ -18,8 +22,14 @@ export interface AppOptions {
   /** Validated bootstrap config; the app never reads process.env. */
   config: Config;
   logger: Logger;
+  /** The migrated database; feature routers and jobs read and write it. */
+  db: Database;
   /** Features to mount. Defaults to the server registry; tests pass their own. */
   features?: readonly ServerFeature[];
+  /** The clock features see. Defaults to the real one; tests inject a fixed one. */
+  now?: () => Date;
+  /** Outbound HTTP for features. Defaults to the global fetch; tests inject fixtures. */
+  fetch?: typeof globalThis.fetch;
   /**
    * Live-update hub behind GET /api/events. The entrypoint passes the one it
    * hands to jobs and writers; defaults to a private one nothing publishes to.
@@ -27,16 +37,43 @@ export interface AppOptions {
   broadcaster?: Broadcaster;
 }
 
-/** Builds the Hearth HTTP app. Does not listen; the entrypoint does. */
-export function createApp(options: AppOptions): Express {
+export interface CreatedApp {
+  app: Express;
+  /** Every feature's job, in registry order, for the entrypoint's scheduler. */
+  jobs: readonly FeatureJob[];
+}
+
+/**
+ * Builds the Hearth HTTP app and each feature's job. Does not listen or run
+ * the jobs; the entrypoint does, after the database is migrated.
+ */
+export function createApp(options: AppOptions): CreatedApp {
   const app = express();
   app.disable('x-powered-by');
 
+  const broadcaster = options.broadcaster ?? createBroadcaster(options.logger);
+  const now = options.now ?? (() => new Date());
+  const admin = createAdmin({ db: options.db, now, logger: options.logger });
+  const ctx: FeatureContext = {
+    db: options.db,
+    broadcaster,
+    logger: options.logger,
+    config: options.config,
+    now,
+    fetch: options.fetch ?? globalThis.fetch,
+    requireAdmin: admin.requireAdmin,
+  };
+
+  app.use('/api/admin', admin.router);
+  app.use('/api/settings', createSettingsRouter({ db: options.db, requireAdmin: admin.requireAdmin }));
+
+  const jobs: FeatureJob[] = [];
   for (const feature of options.features ?? serverFeatureList) {
-    if (feature.router) app.use(`/api/${feature.id}`, feature.router);
+    if (feature.createRouter) app.use(`/api/${feature.id}`, feature.createRouter(ctx));
+    if (feature.createJob) jobs.push(feature.createJob(ctx));
   }
 
-  app.get('/api/events', eventsHandler(options.broadcaster ?? createBroadcaster(options.logger)));
+  app.get('/api/events', eventsHandler(broadcaster));
 
   // Anything under /api that reached here is unknown: JSON, never the SPA.
   app.use('/api', (_req, res) => {
@@ -62,7 +99,7 @@ export function createApp(options: AppOptions): Express {
 
   app.use(errorBoundary(options.logger));
 
-  return app;
+  return { app, jobs };
 }
 
 /**
@@ -76,7 +113,7 @@ function indexHandler(clientDist: string, zone: string): RequestHandler {
     try {
       html = await readFile(join(clientDist, 'index.html'), 'utf8');
     } catch (err) {
-      throw isMissingFile(err) ? Object.assign(new Error('client not built'), { status: 404 }) : err;
+      throw isMissingFile(err) ? new BareHttpError(404, 'client not built') : err;
     }
     res.type('html').set('Cache-Control', 'no-cache').send(injectZone(html, zone));
   };
@@ -102,11 +139,14 @@ function isMissingFile(err: unknown): boolean {
 }
 
 /**
- * The HTTP error boundary. Responds with the status's reason phrase only:
- * never the error's own message (it may carry a URL or a path) and never a
- * stack trace. A 5xx is logged by method and path: never the query string
- * (`req.path` has none) and never the body, since either could carry an
- * iCal URL. The logger's `err` serializer redacts URLs in the message.
+ * The HTTP error boundary, the only place an error becomes a response. It
+ * answers with the status's reason phrase, plus the message when the error
+ * is a 4xx HttpError (a message written for the client). Any other error's
+ * message stays out of the response (it may carry a URL, a path or an echo
+ * of the request body), and there is never a stack trace. A 5xx is logged
+ * by method and path: never the query string (`req.path` has none) and
+ * never the body, since either could carry an iCal URL. The logger's `err`
+ * serializer redacts URLs in the message.
  */
 function errorBoundary(logger: Logger): ErrorRequestHandler {
   return (err: unknown, req, res, next) => {
@@ -117,8 +157,12 @@ function errorBoundary(logger: Logger): ErrorRequestHandler {
     const status = httpStatusOf(err);
     if (status >= 500) {
       logger.error({ err, method: req.method, path: req.path, status }, 'request failed');
+      sendError(res, status);
+    } else if (err instanceof HttpError) {
+      sendError(res, status, err.message);
+    } else {
+      sendError(res, status);
     }
-    sendError(res, status);
   };
 }
 
@@ -139,6 +183,7 @@ function httpStatusOf(err: unknown): number {
   return 500;
 }
 
-function sendError(res: Response, status: number): void {
-  res.status(status).json({ error: STATUS_CODES[status] ?? 'Error' });
+function sendError(res: Response, status: number, message?: string): void {
+  const error = STATUS_CODES[status] ?? 'Error';
+  res.status(status).json(message === undefined ? { error } : { error, message });
 }

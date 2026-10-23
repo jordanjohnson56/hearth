@@ -3,9 +3,10 @@ import type { MouseEvent } from 'react';
 import { clientFeatureList } from '../features/registry.client.js';
 import type { ClientFeature } from '../features/types.js';
 
-/** The view a path shows. Home is `/`; each feature page is `/<id>`. */
+/** The view a path shows. Home is `/`, admin is `/admin`, each feature page is `/<id>`. */
 export type Route =
   | { kind: 'home' }
+  | { kind: 'admin' }
   | { kind: 'feature'; feature: ClientFeature }
   | { kind: 'not-found' };
 
@@ -15,6 +16,7 @@ function routeFor(pathname: string): Route {
   // Only the first segment picks the view; deeper paths belong to the page.
   const [first] = pathname.split('/').filter(Boolean);
   if (first === undefined) return { kind: 'home' };
+  if (first === 'admin') return { kind: 'admin' };
   const feature = clientFeatureList.find((candidate) => candidate.id === first);
   return feature ? { kind: 'feature', feature } : { kind: 'not-found' };
 }
@@ -58,7 +60,15 @@ export function followLink(event: MouseEvent<HTMLAnchorElement>): void {
   event.preventDefault();
   // Query and fragment included: `/calendar?view=week` from `/calendar` is
   // a navigation, and pushState must keep them.
-  const target = link.pathname + link.search + link.hash;
+  navigate(link.pathname + link.search + link.hash);
+}
+
+/**
+ * Changes the route to `target` (path, query and fragment) without a page
+ * load, as a click on an in-app link does. For controls that cannot be
+ * links, such as a disabled-at-the-edge button.
+ */
+export function navigate(target: string): void {
   const { pathname, search, hash } = window.location;
   if (target !== pathname + search + hash) {
     window.history.pushState(null, '', target);

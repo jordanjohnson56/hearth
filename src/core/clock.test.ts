@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatClock } from './clock.js';
+import { formatClock, formatTime } from './clock.js';
 
 // ICU may put a narrow no-break space before AM/PM; compare on plain spaces.
 function plain(clock: { time: string; date: string }) {
@@ -34,5 +34,14 @@ describe('formatClock', () => {
 
   it('rejects an unknown zone instead of silently using the device zone', () => {
     expect(() => formatClock(new Date('2026-10-23T12:00:00Z'), 'Mars/Olympus_Mons', 'en-US')).toThrow(RangeError);
+  });
+});
+
+describe('formatTime', () => {
+  it('is the time half of formatClock, in the zone given', () => {
+    const instant = new Date('2026-10-24T03:00:00Z');
+    expect(formatTime(instant, 'America/Chicago', 'en-US').replace(/\s/g, ' ')).toBe('10:00 PM');
+    expect(formatTime(instant, 'America/Chicago', 'en-US')).toBe(formatClock(instant, 'America/Chicago', 'en-US').time);
+    expect(formatTime(instant, 'Asia/Kolkata', 'en-US').replace(/\s/g, ' ')).toBe('8:30 AM');
   });
 });

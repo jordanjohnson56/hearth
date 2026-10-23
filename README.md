@@ -9,11 +9,14 @@ accounts and no TLS: physical access to the kitchen is the trust boundary. A
 PIN protects admin actions. Calendars are read only, from Google Calendar
 secret-address iCal URLs that the server polls.
 
-> **Status:** M0, the skeleton. Hearth runs and deploys, and shows the empty
-> shell: header, tile grid and bottom nav. The calendar arrives in M1 and
-> chores in M2. See [docs/DESIGN.md](docs/DESIGN.md) for the plan.
+> **Status:** M1, the calendar. Hearth runs and deploys, shows the clock,
+> today's events in the Day at a glance tile and the month grid on the
+> Calendar page, reads Google Calendar secret addresses that an
+> administrator adds behind a PIN (see [Calendars](#calendars)), and
+> switches between light and dark at configurable times. Chores arrive in
+> M2. See [docs/DESIGN.md](docs/DESIGN.md) for the plan.
 
-![Hearth home screen (screenshot placeholder until M1)](docs/screenshot-placeholder.svg)
+![Hearth home screen, M1 (screenshot placeholder; the real screenshot arrives in M3)](docs/screenshot-placeholder.svg)
 
 ## Quick start (Docker)
 
@@ -64,13 +67,14 @@ the LAN.
 Hearth reads four environment variables at startup. It checks them all and
 refuses to start with a list of every problem. [.env.example](.env.example)
 holds the defaults. Everything a person sets up, such as people, calendars,
-the PIN and chores, lives in the database under `DATA_DIR`, not here.
+the PIN, the theme times and chores, lives in the database under
+`DATA_DIR`, not here.
 
 | Variable | Default | Meaning |
 |---|---|---|
 | `PORT` | `4400` | Port the server listens on (1 to 65535). Under Docker the container always listens on 4400; to publish a different host port, change `ports` in `docker-compose.yml`. |
 | `DATA_DIR` | `./data` | Directory for the SQLite database (`hearth.db`). Relative paths resolve against the working directory. Hearth creates it if it is missing, and it must be writable. Under Docker this is always `/data` inside the container; set `HEARTH_DATA_HOST` instead. |
-| `TZ` | `America/Chicago` | IANA time zone name, such as `Europe/Paris`. All date math uses it: what is due today, Monday to Sunday weeks, and season boundaries. Fixed offsets such as `-06:00` are rejected. |
+| `TZ` | `America/Chicago` | IANA time zone name, such as `Europe/Paris`. All date math uses it: which day an event falls on, when the theme switches, what is due today, Monday to Sunday weeks, and season boundaries. Fixed offsets such as `-06:00` are rejected. |
 | `LOG_LEVEL` | `info` | One of `fatal`, `error`, `warn`, `info`, `debug`, `trace` or `silent`. |
 | `HEARTH_DATA_HOST` | none, required | Docker Compose only: the absolute host directory mounted at `/data`. Keep it outside the repository. |
 
@@ -82,6 +86,112 @@ without anyone noticing. Without a `.env`, or with a variable left out of
 it, Hearth uses the default. `PORT` and `DATA_DIR` in `.env` have no effect
 under Docker. Outside Docker, Hearth reads only the process environment, so
 set the variables in your shell, for example `TZ=Europe/Paris npm start`.
+
+## Calendars
+
+Hearth shows Google Calendar calendars that it reads through their secret
+addresses. An administrator sets them up from the wall or from any device
+on the LAN. Nothing in this section touches the repository: the PIN, the
+addresses and the events live in the database under `DATA_DIR`.
+
+### Unlock admin
+
+1. Tap **Admin** in the header.
+2. On first use there is no PIN and no default PIN exists. The page says
+   **Set a PIN**: choose four digits and enter them twice. Hearth saves the
+   PIN and unlocks.
+3. From then on the Admin page asks for the PIN. After five wrong PINs in a
+   row the pad refuses for 30 seconds, doubling with every further wrong
+   PIN up to 15 minutes; a correct PIN resets the count. The PIN keeps a
+   child out, not an attacker (see [docs/DESIGN.md](docs/DESIGN.md),
+   section 3).
+4. An unlocked session lasts 10 minutes from its last use and 60 minutes at
+   most. **Lock now**, a page reload and a server restart all lock it at
+   once. Unlocked, the page shows **Change PIN**, **Theme** and
+   **Calendar**.
+
+### Add a calendar
+
+In Google Calendar on the web, open Settings, pick the calendar under
+"Settings for my calendars", scroll to "Integrate calendar" and copy
+**Secret address in iCal format**. It has this shape (this example is
+fake):
+
+```
+https://calendar.google.com/calendar/ical/EXAMPLE/private-EXAMPLE0000000000/basic.ics
+```
+
+A `webcal` address is accepted and read over https. An `http://` address
+is refused: the address is a secret and must not travel in the clear. A
+link to the Google Calendar web page (the **Get shareable link** address
+with `?cid=`, an embed link, or the app's own address) is refused outright
+with a message that names the **Secret address in iCal format**: those
+links open a sign-in page, not a feed.
+
+Under **Calendar**, type a label (a name such as Ada, or "School"), pick a
+color, paste the address and tap **Add**. Hearth saves the source and
+fetches it once right away, and the new row says whether that worked. A
+failed first fetch keeps the row, so you can fix the cause and tap
+**Refresh now** rather than paste the address again.
+
+### What the status row shows
+
+- **Address**: the host plus a short hash of the address, such as
+  `calendar.google.com#1a2b3c4d`. It tells two sources apart without
+  repeating the secret. The address itself is never shown again, anywhere:
+  not in admin, not in `/api/calendar/sources`, not in the logs. To change
+  it, tap **Edit** and paste a new one.
+- **Last success** and **Last attempt**: when the feed was last read
+  successfully and when Hearth last tried, in the household's zone.
+- **Status**: `OK`, or why the last attempt failed. Hearth stores only a
+  classification, never a message that could quote the address:
+  - `timeout`, shown as "Timed out": no answer within 30 seconds.
+  - `http <status>`, shown as "Server answered 404" and so on. A 404 from
+    Google usually means the secret address was reset: copy the new one
+    and paste it with **Edit**.
+  - `not-ics`, shown as "Not a calendar feed": the address answered with
+    something other than a calendar, such as a sign-in page from a
+    calendar service other than Google. (A Google web-page link is
+    refused when it is pasted, before any fetch, with a message that
+    names the **Secret address in iCal format**.)
+  - `too-large`, shown as "Feed is too large": over 5 MB.
+  - `network`, shown as "Could not connect".
+  - `redirected-away`, shown as "The address sends Hearth to another site,
+    usually a sign-in page": the address redirected to a different host,
+    which Hearth does not follow. Paste the **Secret address in iCal
+    format** with **Edit**.
+- **Skipped**: "N events could not be read" appears when the last fetch
+  contained events Hearth could not parse. The rest are shown as usual.
+
+**Refresh now** fetches at once. **Edit** changes the label, the color or
+the address; a new address drops the old events and fetches the new feed.
+**Delete** asks for confirmation, then removes the source and its events.
+
+Hearth polls every source every 10 minutes, starting right after the
+server is listening. A failed poll keeps the last good events: a Wi-Fi
+blip or a Google outage never empties the calendar. When the newest
+successful fetch is more than an hour old, the Day at a glance tile adds a
+line such as "Calendar updated 3 hours ago". The tile and the Calendar page
+update on their own when a fetch changes anything.
+
+### Theme times
+
+Under **Theme**, **Light from** and **Dark from** are the two times of day
+at which the display switches, in 24-hour `HH:MM`. The defaults are 07:00
+and 19:30. Either order works, so the dark period (or the light one) may
+wrap midnight; the two times must differ. They are evaluated in the
+household's `TZ`, not the device's zone. A save applies at once on the
+device that made it, and the wall follows within five minutes. There is no
+manual toggle.
+
+### Where the data lives
+
+Everything above is in the SQLite database `hearth.db` under `DATA_DIR`
+(`HEARTH_DATA_HOST` under Docker). The secret addresses are in a table of
+their own that only the fetcher reads. They never leave the server: the
+API, the logs and the browser see the host-plus-hash form only. If an
+address does leak elsewhere, reset it in Google Calendar and paste the new
+one with **Edit**.
 
 ## Development
 
@@ -95,7 +205,7 @@ npm ci
 npm run dev          # server (port 4400) plus Vite with hot reload; open http://localhost:5173
 npm run build        # client to dist/client, server to dist/server
 npm start            # run the build on http://localhost:4400
-npm run seed         # seed the fictional family into DATA_DIR (runs the build; run npm run build first)
+npm run seed         # seed the fictional family into DATA_DIR (uses the build; run npm run build first)
 npm run seed:dev     # the same, straight from the TypeScript sources
 
 npm run typecheck
@@ -119,7 +229,8 @@ commit cannot be taken back once it is pushed.
 - Everything personal lives in the SQLite database under `DATA_DIR`, never in
   the repository or in `.env`. A secret-address iCal URL gives full read
   access to a calendar, so Hearth keeps it only in the database. It never
-  logs one or sends one to the browser.
+  logs one or sends one to the browser; admin shows a host-plus-hash
+  fingerprint instead (see [Calendars](#calendars)).
 - `DATA_DIR=./data` is only the demo default for running outside Docker. `data/`
   is gitignored, so a clone that runs the demo commits nothing.
 - Under Docker the database lives in `HEARTH_DATA_HOST`. Compose requires the

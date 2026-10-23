@@ -1,0 +1,294 @@
+/*
+ * The month page. Same rules as shell.css: tokens only, rem/clamp sizes, no
+ * device literals; px appears only through --touch-min and for hairline
+ * borders. The shell's main region already sizes and scrolls the page, so
+ * there is no viewport unit here.
+ */
+
+/* Three pills and a "+N" fit a six-row month at the reference viewport. */
+.month-page {
+  --month-pill-size: clamp(0.75rem, 0.5rem + 0.4vw, 0.9375rem);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  /* A definite height, so the rows share the page; a month that needs more
+     (six rows on a short landscape phone) overflows into the main scroll. */
+  height: 100%;
+}
+
+.month-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-2);
+}
+
+.month-title {
+  margin: 0;
+  font-size: clamp(1.375rem, 1.1rem + 1.2vw, 2rem);
+  font-weight: 600;
+}
+
+.month-nav {
+  display: flex;
+  gap: var(--space-1);
+}
+
+/* A .button (shell.css) with a larger glyph. */
+.month-nav-button {
+  font-size: 1.125rem;
+}
+
+.month-note {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.month-note[data-tone='error'] {
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+/* Grid and day panel: stacked, side by side when the page is wide enough. */
+
+.month-body {
+  display: grid;
+  flex: 1;
+  grid-template-columns: minmax(0, 1fr);
+  /* A definite first row: with `auto`, 1fr cell rows would all grow to the
+     tallest cell's content and the grid would overflow the page. */
+  grid-template-rows: minmax(0, 1fr);
+  gap: var(--space-2);
+  min-height: 0;
+}
+
+.month-grid-wrap {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.month-weekdays,
+.month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.25rem;
+}
+
+.month-weekday {
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: clamp(0.6875rem, 0.6rem + 0.3vw, 0.875rem);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-align: center;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* Rows share the page height; a busy month scrolls the main region instead
+   of squeezing below the tap minimum. */
+.month-grid {
+  grid-auto-rows: minmax(max(var(--touch-min), 4.5rem), 1fr);
+}
+
+.month-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.0625rem;
+  min-width: 0;
+  min-height: var(--touch-min);
+  padding: 0.25rem;
+  border: 1px solid var(--color-border);
+  border-radius: calc(var(--radius) / 2);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.month-cell[data-in-month='false'] {
+  opacity: 0.45;
+}
+
+.month-cell[aria-current='date'] {
+  border-color: var(--color-accent);
+  box-shadow: inset 0 0 0 1px var(--color-accent);
+}
+
+.month-cell[aria-pressed='true'] {
+  background: var(--color-surface-raised);
+}
+
+.month-cell-day {
+  flex: none;
+  color: var(--color-text-muted);
+  font-size: clamp(0.8125rem, 0.7rem + 0.4vw, 1rem);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.month-cell[aria-current='date'] .month-cell-day {
+  color: var(--color-accent);
+}
+
+.month-cell-pills {
+  display: flex;
+  flex-direction: column;
+  gap: 0.0625rem;
+  min-width: 0;
+}
+
+/* A pill keeps the text color and carries its source as a left edge, so it
+   reads in both themes without a contrast check per color. */
+.month-pill {
+  display: block;
+  min-width: 0;
+  padding: 0 0.25rem;
+  border: 0 solid transparent;
+  border-left-width: 0.25rem;
+  border-radius: 0.25rem;
+  background: var(--color-surface-raised);
+  font-size: var(--month-pill-size);
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.month-pill-time {
+  margin-right: 0.3em;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.month-more {
+  color: var(--color-text-muted);
+  font-size: var(--month-pill-size);
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+/* Narrow page (a phone in portrait, a small landscape phone): a title would
+   be a few letters per cell, so each pill collapses to a dot in its source
+   color and the "+N" keeps the count. The cell stays a full tap target and
+   the day panel still lists everything. The gaps shrink too: at a 360px
+   viewport, seven columns with 0.25rem gaps fall just under --touch-min. */
+@container main (width < 40rem) {
+  .month-weekdays,
+  .month-grid {
+    gap: 0.125rem;
+  }
+
+  .month-cell-pills {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.1875rem;
+  }
+
+  .month-pill {
+    width: 0;
+    height: 0;
+    padding: 0;
+    border-width: 0.3125rem;
+    border-radius: 50%;
+    font-size: 0;
+  }
+
+  .month-pill > * {
+    display: none;
+  }
+}
+
+/* Day panel */
+
+.month-day {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.month-day-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1);
+}
+
+.month-day-title {
+  margin: 0;
+  font-size: clamp(1.125rem, 1rem + 0.6vw, 1.5rem);
+}
+
+.month-day-empty {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.month-day-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.month-day-event {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  padding: var(--space-1) var(--space-2);
+  border: 0 solid transparent;
+  border-left-width: 0.375rem;
+  border-radius: calc(var(--radius) / 2);
+  background: var(--color-surface-raised);
+  overflow-wrap: anywhere;
+}
+
+.month-day-when {
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.month-day-name {
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.month-day-where,
+.month-day-source {
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+}
+
+/* Wide page: the panel sits beside the grid instead of below it. */
+@container main (width >= 64rem) {
+  .month-body[data-panel-open] {
+    grid-template-columns: minmax(0, 1fr) minmax(16rem, 24rem);
+    align-items: start;
+  }
+
+  .month-body[data-panel-open] .month-grid-wrap {
+    align-self: stretch;
+  }
+
+  /* The panel scrolls within its column rather than stretching the grid. */
+  .month-body[data-panel-open] .month-day {
+    max-height: 100%;
+    overflow-y: auto;
+  }
+}

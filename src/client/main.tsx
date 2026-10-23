@@ -4,6 +4,7 @@ import { App } from './App.js';
 import './styles/theme.css';
 import './styles/kiosk.css';
 import './styles/shell.css';
+import './styles/admin.css';
 
 const root = document.getElementById('root');
 if (!root) throw new Error('Missing #root element in index.html');

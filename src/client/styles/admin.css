@@ -1,0 +1,151 @@
+/*
+ * The /admin route: the PIN pad (first-run set and unlock) and the unlocked
+ * panel. Same rules as shell.css: tokens only, rem/clamp sizes; px appears
+ * only through --touch-min and for hairline borders.
+ */
+
+.admin-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  max-width: 44rem;
+  margin: 0 auto;
+}
+
+.admin-title {
+  margin: 0;
+  font-size: clamp(1.375rem, 1.1rem + 1.2vw, 2rem);
+  text-align: center;
+}
+
+.admin-message {
+  min-height: 1.5em;
+  margin: 0;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.admin-message[data-tone='error']:not(:empty) {
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+/* PIN pad */
+
+.pin-pad {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  max-width: 20rem;
+}
+
+.pin-dots {
+  display: flex;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.pin-dot {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid var(--color-text-muted);
+  border-radius: 50%;
+}
+
+.pin-dot[data-filled='true'] {
+  background: var(--color-text);
+  border-color: var(--color-text);
+}
+
+.pin-keys {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-1);
+  width: 100%;
+}
+
+/* A .button (shell.css) grown for a thumb and a big digit. */
+.pin-key {
+  min-height: max(var(--touch-min), 3.5rem);
+  padding: 0;
+  font-size: 1.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Unlocked panel */
+
+.admin-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 100%;
+}
+
+.admin-panel-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.admin-section {
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.admin-section-title {
+  margin: 0 0 var(--space-2);
+  font-size: 1.125rem;
+}
+
+.admin-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+
+.admin-form .admin-message {
+  flex-basis: 100%;
+  text-align: left;
+}
+
+.admin-field {
+  display: flex;
+  flex: 1 1 8rem;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+}
+
+.admin-input {
+  width: 100%;
+  min-height: var(--touch-min);
+  padding: 0 var(--space-1);
+  border: 1px solid var(--color-border);
+  border-radius: calc(var(--radius) / 1.5);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 1.125rem;
+}
+
+/* Digits typed one by one read better spaced out. */
+.admin-input-pin {
+  font-size: 1.25rem;
+  letter-spacing: 0.25em;
+}
+
+/* At the PIN size the browser's time picker clips in a phone-width field. */
+.admin-input-time {
+  font-variant-numeric: tabular-nums;
+}

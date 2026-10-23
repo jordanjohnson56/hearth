@@ -47,12 +47,35 @@ export function registerRefetcher(feature: FeatureId, refetch: Refetcher): () =>
   };
 }
 
+/**
+ * Core reloads that ride the backstop and reconnect refetches but belong to
+ * no feature (the theme times). Change hints stay FeatureId-only, so these
+ * are never triggered by a hint.
+ */
+const backstops = new Set<Refetcher>();
+
+/**
+ * Registers `refetch` to run on every backstop or reconnect refetch, as
+ * `registerRefetcher` does, but for core data no change hint names.
+ * Returns the function that unregisters it.
+ */
+export function registerBackstop(refetch: Refetcher): () => void {
+  const entry: Refetcher = () => {
+    refetch();
+  };
+  backstops.add(entry);
+  return () => {
+    backstops.delete(entry);
+  };
+}
+
 function refetchFeature(feature: FeatureId): void {
   for (const refetch of refetchers.get(feature) ?? []) refetch();
 }
 
 function refetchAll(): void {
   for (const feature of refetchers.keys()) refetchFeature(feature);
+  for (const refetch of backstops) refetch();
 }
 
 /**

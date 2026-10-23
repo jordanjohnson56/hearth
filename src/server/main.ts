@@ -9,6 +9,8 @@ import { createBroadcaster } from './broadcaster.js';
 import { loadConfig } from './config.js';
 import { prepareDatabase } from './db/database.js';
 import { createLogger } from './logger.js';
+import { startScheduler } from './scheduler.js';
+import type { Scheduler } from './scheduler.js';
 
 const result = loadConfig(process.env, { cwd: process.cwd() });
 
@@ -49,8 +51,11 @@ const clientDist = fileURLToPath(new URL('../client', import.meta.url));
 // One hub for the process: M1's poll jobs and M2's writes publish to it.
 const broadcaster = createBroadcaster(logger);
 
-const app = createApp({ clientDist, config, logger, broadcaster });
+const { app, jobs } = createApp({ clientDist, config, logger, db, broadcaster });
 
+// Jobs start once the server is listening, so a slow first poll never
+// delays the first request.
+let scheduler: Scheduler | undefined;
 const server = app.listen(config.port, (error?: Error) => {
   if (error !== undefined) {
     logger.fatal({ err: error, port: config.port }, 'cannot listen');
@@ -60,6 +65,7 @@ const server = app.listen(config.port, (error?: Error) => {
     { port: config.port, zone: config.zone, dataDir: config.dataDir },
     'Hearth listening',
   );
+  scheduler = startScheduler(jobs, logger);
 });
 
 /** How long in-flight requests get to finish before their sockets are cut. */
@@ -68,6 +74,9 @@ const SHUTDOWN_GRACE_MS = 5_000;
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.once(signal, () => {
     logger.info({ signal }, 'shutting down');
+    // No new job runs; one in progress finishes within the grace period or
+    // is lost with the process, which the next boot's run makes good.
+    scheduler?.stop();
     // Stop accepting connections (idle keep-alive ones close now), then end
     // the event streams, which never finish on their own: without that,
     // close() waits until Docker's SIGKILL and the database is never closed.
