@@ -214,3 +214,87 @@
   color: var(--color-text-muted);
   font-size: 0.9375rem;
 }
+
+/* The correction list: the last 14 days of completions. */
+
+.chores-completions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+}
+
+.chores-completion-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chores-completion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: calc(var(--radius) / 1.5);
+  background: var(--color-surface-raised);
+  --avatar-size: 2.25rem;
+}
+
+.chores-completion-summary {
+  display: flex;
+  flex: 1 1 16rem;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.chores-completion-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.chores-completion-line {
+  margin: 0;
+  font-size: 1.0625rem;
+  overflow-wrap: anywhere;
+}
+
+.chores-completion-chore {
+  font-weight: 600;
+}
+
+.chores-completion-detail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem var(--space-1);
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+}
+
+.chores-completion[data-voided='true'] {
+  background: var(--color-surface);
+}
+
+.chores-completion[data-voided='true'] .chores-completion-line {
+  color: var(--color-text-muted);
+}
+
+.chores-completion[data-voided='true'] .person-avatar {
+  opacity: 0.55;
+}
+
+.chores-completion .admin-message {
+  flex-basis: 100%;
+  text-align: left;
+}
