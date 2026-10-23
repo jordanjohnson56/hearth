@@ -21,7 +21,8 @@ object.
 
 **Week**: Monday 00:00 local to the following Monday 00:00 local in the
 configured zone. A week containing a DST transition lasts 167 or 169 hours,
-and that is correct.
+and that is correct. The month grid's Sunday-first rows are a display
+choice and do not change this.
 
 **Week start**: the instant at which a week begins. If Monday 00:00 does not
 exist in the zone (a DST gap at midnight), it is the first instant of that
@@ -74,6 +75,31 @@ in the configured zone), between which the display is light or dark. The
 theme is light from light-from up to dark-from and dark the rest of the day,
 in wall-clock minute order, whichever of the two comes first. _Avoid_:
 night mode, dark mode toggle.
+
+**Calendar source** (source): a labelled, colored iCal feed Hearth polls, with
+a secret URL. Its events are replaced wholesale on each successful fetch;
+a failed fetch keeps the last good ones. _Avoid_: calendar (that is the
+feature), subscription, account.
+
+**Event**: a normalized timed or all-day entry from one source: title,
+location, start and end, in Hearth's own type, never the library's. A timed
+event is an instant range; an all-day event is a local-date range with an
+exclusive end. _Avoid_: appointment, entry.
+
+**Occurrence**: one expanded instance of a recurring event, or a single
+event's only instance. Stored rows are occurrences within the poll window;
+the calendar is a view, not a record. _Avoid_: instance (ambiguous with a
+RECURRENCE-ID override), expansion.
+
+**Secret URL** (secret address): the iCal address of a source. A bearer
+credential to the whole calendar: it exists as a string only in the admin
+request body and the fetcher, and everywhere else as a `SecretUrl` whose
+string form is the fingerprint (host plus a short hash). It lives only in
+the database. _Avoid_: feed URL, link.
+
+**Stale**: the newest successful fetch across every source is older than 60
+minutes. A source that has never succeeded is "not yet fetched", not stale.
+_Avoid_: outdated, expired.
 
 **Pending migration**: a migration in the code that the database has not
 recorded as applied. The server applies pending migrations at boot, before
