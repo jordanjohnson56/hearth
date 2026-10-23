@@ -17,6 +17,8 @@ import type { SourceWire } from './types.js';
 
 const ADA_URL = 'https://cal.example/feeds/ada/private-feed-0123456789abcdef.txt';
 const MARIE_URL = 'https://cal.example/feeds/marie/private-feed-fedcba9876543210.txt';
+/** Google's "Get shareable link": the web page, not a feed. */
+const GOOGLE_PAGE_LINK = 'https://calendar.google.com/calendar/u/0?cid=EXAMPLE';
 /** 2026-10-23 12:00 in Chicago: the poll window is 2026-07-01 .. 2027-10-31. */
 const NOW = new Date('2026-10-23T17:00:00Z');
 
@@ -144,6 +146,25 @@ describe('POST /api/calendar/sources', () => {
     expect(res.body).toEqual({ error: 'Bad Request', message: expect.stringMatching(message) as string });
     expect(h.calls).toEqual([]);
     expect(await listSources(h)).toEqual([]);
+  });
+
+  it('refuses the Google Calendar web-page link with a 400 that names the secret address, echoing nothing', async () => {
+    const h = await harness({});
+
+    const res = await addSource(h, { label: 'Ada', color: 'ember', url: GOOGLE_PAGE_LINK });
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({
+      error: 'Bad Request',
+      message:
+        'This is a link to the Google Calendar page, not a feed. In Google Calendar settings, open "Integrate calendar" and paste the "Secret address in iCal format".',
+    });
+    expect(h.calls).toEqual([]);
+    expect(await listSources(h)).toEqual([]);
+    for (const text of [res.text, h.text()]) {
+      expect(text).not.toContain('cid=');
+      expect(text).not.toContain('EXAMPLE');
+    }
   });
 
   it('refuses a duplicate label, ignoring case, with a 409', async () => {
@@ -795,6 +816,7 @@ describe('URL scan', () => {
     bodies.push((await addSource(h, { label: 'Marie', color: 'lake', url: MARIE_URL })).text);
     bodies.push((await addSource(h, { label: 'Grace', color: 'moss', url: ['webcal', MARIE_URL.slice(5)].join('') })).text);
     bodies.push((await addSource(h, { label: 'Linus', color: 'moss', url: 'http://cal.example/feeds/linus/private-feed-0000000000000000.txt' })).text);
+    bodies.push((await addSource(h, { label: 'Linus', color: 'moss', url: GOOGLE_PAGE_LINK })).text);
     bodies.push((await request(h.app).patch('/api/calendar/sources/2').set('Authorization', `Bearer ${h.token}`).send({ url: MARIE_URL })).text);
     bodies.push((await request(h.app).post('/api/calendar/sources/2/refresh').set('Authorization', `Bearer ${h.token}`)).text);
     bodies.push((await request(h.app).get('/api/calendar/sources')).text);
@@ -805,6 +827,7 @@ describe('URL scan', () => {
     for (const text of [h.text(), ...bodies]) {
       expect(text).not.toMatch(URL_SCAN);
       expect(text).not.toContain('cal.example/');
+      expect(text).not.toContain('cid=');
     }
   });
 });

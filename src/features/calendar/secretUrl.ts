@@ -54,6 +54,11 @@ export class SecretUrl {
     if (url.protocol !== 'https:' || url.host === '') {
       throw new InvalidSecretUrlError('Enter the full address, starting with https:// or webcal');
     }
+    if (isGoogleCalendarPage(url)) {
+      throw new InvalidSecretUrlError(
+        'This is a link to the Google Calendar page, not a feed. In Google Calendar settings, open "Integrate calendar" and paste the "Secret address in iCal format".',
+      );
+    }
     return new SecretUrl(url.href);
   }
 
@@ -69,4 +74,23 @@ export class SecretUrl {
   toJSON(): string {
     return this.fingerprint;
   }
+}
+
+/**
+ * Google's "Get shareable link" (`/calendar/u/0?cid=`), embed and app
+ * links point at the web page, which answers a sign-in redirect, not a feed.
+ * The feed is the only Google Calendar address worth saving.
+ */
+function isGoogleCalendarPage(url: URL): boolean {
+  const host = url.hostname.toLowerCase();
+  const path = url.pathname;
+  if (host === 'calendar.google.com') return !isGoogleFeedPath(path);
+  if (host === 'www.google.com' || host === 'google.com') {
+    return path.startsWith('/calendar/') && !isGoogleFeedPath(path);
+  }
+  return false;
+}
+
+function isGoogleFeedPath(path: string): boolean {
+  return path.startsWith('/calendar/ical/') && path.endsWith('.ics');
 }

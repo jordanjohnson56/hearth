@@ -35,6 +35,26 @@ describe('SecretUrl.parse', () => {
     },
   );
 
+  it.each([
+    'https://calendar.google.com/calendar/u/0?cid=EXAMPLE',
+    'https://CALENDAR.GOOGLE.COM/calendar/u/0?cid=EXAMPLE',
+    'https://calendar.google.com/calendar/embed?src=EXAMPLE',
+    'https://calendar.google.com/calendar/r?tab=mc',
+    'https://www.google.com/calendar/render?cid=EXAMPLE',
+  ])('rejects the Google Calendar web page %j, naming the secret address to paste instead', (raw) => {
+    expect(() => SecretUrl.parse(raw)).toThrow(InvalidSecretUrlError);
+    expect(() => SecretUrl.parse(raw)).toThrow(
+      'This is a link to the Google Calendar page, not a feed. In Google Calendar settings, open "Integrate calendar" and paste the "Secret address in iCal format".',
+    );
+  });
+
+  it('accepts the Google secret and public iCal addresses', () => {
+    const secret = 'https://calendar.google.com/calendar/ical/EXAMPLE/private-EXAMPLE0000000000/basic.ics';
+    const publicAddress = 'https://calendar.google.com/calendar/ical/EXAMPLE/public/basic.ics';
+    expect(SecretUrl.parse(secret).reveal()).toBe(secret);
+    expect(SecretUrl.parse(publicAddress).reveal()).toBe(publicAddress);
+  });
+
   it('never repeats the input in the error message', () => {
     const raw = 'http://cal.example/feeds/ada/private-feed.txt';
     let message = '';
@@ -45,6 +65,13 @@ describe('SecretUrl.parse', () => {
     }
     expect(message).not.toContain('private-feed');
     expect(message).not.toContain('cal.example');
+    try {
+      SecretUrl.parse('https://calendar.google.com/calendar/u/0?cid=EXAMPLE');
+    } catch (err) {
+      message = (err as Error).message;
+    }
+    expect(message).not.toContain('cid=');
+    expect(message).not.toContain('EXAMPLE');
   });
 });
 

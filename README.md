@@ -122,7 +122,11 @@ https://calendar.google.com/calendar/ical/EXAMPLE/private-EXAMPLE0000000000/basi
 ```
 
 A `webcal` address is accepted and read over https. An `http://` address
-is refused: the address is a secret and must not travel in the clear.
+is refused: the address is a secret and must not travel in the clear. A
+link to the Google Calendar web page (the **Get shareable link** address
+with `?cid=`, an embed link, or the app's own address) is refused outright
+with a message that names the **Secret address in iCal format**: those
+links open a sign-in page, not a feed.
 
 Under **Calendar**, type a label (a name such as Ada, or "School"), pick a
 color, paste the address and tap **Add**. Hearth saves the source and
@@ -146,8 +150,10 @@ failed first fetch keeps the row, so you can fix the cause and tap
     Google usually means the secret address was reset: copy the new one
     and paste it with **Edit**.
   - `not-ics`, shown as "Not a calendar feed": the address answered with
-    something other than a calendar, often a sign-in page because a
-    public link was pasted instead of the secret address.
+    something other than a calendar, such as a sign-in page from a
+    calendar service other than Google. (A Google web-page link is
+    refused when it is pasted, before any fetch, with a message that
+    names the **Secret address in iCal format**.)
   - `too-large`, shown as "Feed is too large": over 5 MB.
   - `network`, shown as "Could not connect".
 - **Skipped**: "N events could not be read" appears when the last fetch
