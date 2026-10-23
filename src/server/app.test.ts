@@ -24,6 +24,30 @@ describe('app factory', () => {
     expect(res.text).toContain('hearth-fixture-index');
   });
 
+  it.each(['/calendar/2026/10', '/chores/week/2026-10-19', '/v1.2/settings'])(
+    'serves the SPA index.html for client route %s',
+    async (path) => {
+      const res = await request(createApp(testAppOptions())).get(path);
+
+      expect(res.status).toBe(200);
+      expect(res.text).toContain('hearth-fixture-index');
+    },
+  );
+
+  it.each([
+    '/assets/index-OLDHASH.js',
+    '/assets/no-extension',
+    '/assets/',
+    '/favicon.ico',
+    '/robots.txt',
+    '/calendar/manifest.webmanifest',
+  ])('answers missing static file %s with a 404, not index.html', async (path) => {
+    const res = await request(createApp(testAppOptions())).get(path);
+
+    expect(res.status).toBe(404);
+    expect(res.text).not.toContain('hearth-fixture-index');
+  });
+
   it.each(['/api/nope', '/api', '/api/calendar/events/7'])(
     'answers unknown API path %s with a JSON 404 and no stack trace',
     async (path) => {

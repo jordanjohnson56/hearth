@@ -49,6 +49,14 @@ export function createApp(options: AppOptions): Express {
   app.get('/index.html', sendIndex);
   app.use(express.static(options.clientDist, { index: false }));
 
+  // A file express.static did not find is missing, not a client route: a
+  // stale /assets/index-OLDHASH.js must 404, or the browser runs index.html
+  // as a script.
+  app.get('/{*path}', (req, res, next) => {
+    if (looksLikeFile(req.path)) sendError(res, 404);
+    else next();
+  });
+
   // SPA fallback: every other GET is a client-side route.
   app.get('/{*path}', sendIndex);
 
@@ -72,6 +80,16 @@ function indexHandler(clientDist: string, zone: string): RequestHandler {
     }
     res.type('html').set('Cache-Control', 'no-cache').send(injectZone(html, zone));
   };
+}
+
+/**
+ * True for a path under /assets/ (Vite's build output) or whose last segment
+ * has a file extension (`/favicon.ico`). Client routes have neither.
+ */
+function looksLikeFile(path: string): boolean {
+  if (path === '/assets' || path.startsWith('/assets/')) return true;
+  const last = path.slice(path.lastIndexOf('/') + 1);
+  return /\.[a-z0-9]+$/i.test(last);
 }
 
 function isMissingFile(err: unknown): boolean {
