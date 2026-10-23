@@ -25,3 +25,25 @@ export class HttpError extends Error {
     this.status = status;
   }
 }
+
+/**
+ * A 4xx answered with the reason phrase alone, for the case where there is
+ * nothing to tell the client: a request without a live admin token, whose
+ * only remedy is to unlock, which the client already knows. The message is
+ * for a log line, never for the response. HttpError and this class are the
+ * whole vocabulary of errors a route throws on purpose.
+ */
+export class BareHttpError extends Error {
+  override name = 'BareHttpError';
+  readonly status: number;
+
+  constructor(status: number, reason: string) {
+    super(reason);
+    this.status = status;
+  }
+}
+
+/** The parsed JSON body as a bag of unknowns; a non-object body is an empty bag. */
+export function bodyOf(body: unknown): Record<string, unknown> {
+  return typeof body === 'object' && body !== null ? (body as Record<string, unknown>) : {};
+}

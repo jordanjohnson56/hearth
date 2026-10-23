@@ -11,7 +11,7 @@ import { createBroadcaster } from './broadcaster.js';
 import type { Broadcaster } from './broadcaster.js';
 import type { Config } from './config.js';
 import { eventsHandler } from './events.js';
-import { HttpError } from './http.js';
+import { BareHttpError, HttpError } from './http.js';
 import { injectZone } from './index-html.js';
 import type { Logger } from './logger.js';
 import { createSettingsRouter } from './settings.js';
@@ -113,7 +113,7 @@ function indexHandler(clientDist: string, zone: string): RequestHandler {
     try {
       html = await readFile(join(clientDist, 'index.html'), 'utf8');
     } catch (err) {
-      throw isMissingFile(err) ? Object.assign(new Error('client not built'), { status: 404 }) : err;
+      throw isMissingFile(err) ? new BareHttpError(404, 'client not built') : err;
     }
     res.type('html').set('Cache-Control', 'no-cache').send(injectZone(html, zone));
   };

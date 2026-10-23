@@ -13,18 +13,16 @@ import { randomBytes } from 'node:crypto';
 import type { Database } from 'better-sqlite3';
 import { Router } from 'express';
 import type { Request, RequestHandler } from 'express';
+import { TOKEN_IDLE_MS, TOKEN_MAX_MS } from '../core/adminSession.js';
 import { readSetting, writeSetting } from './db/settingRepository.js';
-import { HttpError, jsonBody } from './http.js';
+import { BareHttpError, HttpError, bodyOf, jsonBody } from './http.js';
 import type { Logger } from './logger.js';
 import { hashPin, isValidPin, verifyPin } from './pinHash.js';
 
 /** The setting key holding the scrypt hash of the admin PIN. */
 export const PIN_HASH_SETTING = 'admin.pin_hash';
 
-/** A token dies this long after its last authenticated use... */
-export const TOKEN_IDLE_MS = 10 * 60_000;
-/** ...and this long after it was issued, however busy it was. */
-export const TOKEN_MAX_MS = 60 * 60_000;
+export { TOKEN_IDLE_MS, TOKEN_MAX_MS } from '../core/adminSession.js';
 
 /** Consecutive unlock failures before the endpoint starts refusing. */
 export const LOCKOUT_AFTER_FAILURES = 5;
@@ -157,12 +155,6 @@ export function createAdmin(options: AdminOptions): Admin {
   return { router, requireAdmin };
 }
 
-/** A bare 401: the boundary answers it without a message. */
-function unauthorized(): Error {
-  return Object.assign(new Error('no live admin token'), { status: 401 });
-}
-
-/** The parsed JSON body as a bag of unknowns; a non-object body is an empty bag. */
-function bodyOf(body: unknown): Record<string, unknown> {
-  return typeof body === 'object' && body !== null ? (body as Record<string, unknown>) : {};
+function unauthorized(): BareHttpError {
+  return new BareHttpError(401, 'no live admin token');
 }

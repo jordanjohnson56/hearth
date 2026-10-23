@@ -61,6 +61,7 @@ function toSource(row: SourceRow): CalendarSource {
     createdAt: new Date(row.created_at),
     lastAttemptAt: row.last_attempt_at === null ? null : new Date(row.last_attempt_at),
     lastSuccessAt: row.last_success_at === null ? null : new Date(row.last_success_at),
+    // Written only from FetchFailure values (recordFetchFailure); anything else is a code bug.
     lastError: row.last_error as FetchFailure | null,
     skippedCount: row.skipped_count,
   };

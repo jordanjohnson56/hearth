@@ -87,10 +87,3 @@ export interface SourceWire {
 export interface SourcesResponse {
   sources: SourceWire[];
 }
-
-/** POST /api/calendar/sources body; PATCH takes any subset. */
-export interface SourceInputWire {
-  label: string;
-  color: string;
-  url: string;
-}

@@ -17,7 +17,7 @@ import type { Request } from 'express';
 import { isPersonColor } from '../../core/personColor.js';
 import { daysBetween, parseLocalDate } from '../../core/time.js';
 import type { LocalDate } from '../../core/time.js';
-import { HttpError, jsonBody } from '../../server/http.js';
+import { HttpError, bodyOf, jsonBody } from '../../server/http.js';
 import type { FeatureContext, FeatureJob, Migration, ServerFeature } from '../types.js';
 import type { StoredEvent } from './eventRepository.js';
 import { InvalidSecretUrlError, SecretUrl } from './secretUrl.js';
@@ -255,10 +255,6 @@ async function withDomainErrors<T>(run: () => Promise<T>): Promise<T> {
     if (err instanceof DuplicateLabelError) throw new HttpError(409, err.message);
     throw err;
   }
-}
-
-function bodyOf(body: unknown): Record<string, unknown> {
-  return typeof body === 'object' && body !== null ? (body as Record<string, unknown>) : {};
 }
 
 function toSourceWire(source: CalendarSource): SourceWire {

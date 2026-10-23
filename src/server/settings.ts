@@ -11,7 +11,7 @@ import type { RequestHandler } from 'express';
 import { DEFAULT_DARK_FROM, DEFAULT_LIGHT_FROM, isHHMM } from '../core/theme.js';
 import type { ThemeTimes } from '../core/theme.js';
 import { readSetting, writeSetting } from './db/settingRepository.js';
-import { HttpError, jsonBody } from './http.js';
+import { HttpError, bodyOf, jsonBody } from './http.js';
 
 /** The setting keys holding the theme switch times (`HH:MM`, 24-hour). */
 export const LIGHT_FROM_SETTING = 'theme.light_from';
@@ -52,8 +52,7 @@ export function readThemeTimes(db: Database): ThemeTimes {
 
 /** The validated body of a PUT /theme, or a 400 saying which field is wrong. */
 function themeTimesOf(body: unknown): ThemeTimes {
-  const bag = typeof body === 'object' && body !== null ? (body as Record<string, unknown>) : {};
-  const { lightFrom, darkFrom } = bag;
+  const { lightFrom, darkFrom } = bodyOf(body);
   if (!isHHMM(lightFrom)) throw new HttpError(400, 'Light from must be a time as HH:MM');
   if (!isHHMM(darkFrom)) throw new HttpError(400, 'Dark from must be a time as HH:MM');
   if (lightFrom === darkFrom) throw new HttpError(400, 'Light from and dark from must differ');
