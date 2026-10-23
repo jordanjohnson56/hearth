@@ -229,6 +229,26 @@ describe('parseFeed: recurrence', () => {
       expect(feed().skipped).toBe(0);
     });
   });
+
+  describe('cancelled and unreadable recurring events', () => {
+    const window = { from: '2026-09-01' as LocalDate, to: '2026-09-30' as LocalDate, zone: CHICAGO };
+    const feed = () => parseFeed(icalFixture('cancelled-and-unreadable'), window);
+
+    it('drops a cancelled series together with its overrides', () => {
+      expect(feed().events.map((e) => e.uid)).not.toContain('cancelled-series@cal.example');
+    });
+
+    it('skips and counts each VEVENT whose rule cannot be read or expanded, and the feed still succeeds', () => {
+      const { events, skipped } = feed();
+
+      expect(events.map((e) => [e.uid, e.recurrenceId])).toEqual([
+        ['fine@cal.example', '2026-09-02T10:00:00'],
+        ['fine@cal.example', '2026-09-03T10:00:00'],
+      ]);
+      // bad-frequency, bad-until, bad-exdate, no-frequency, runaway.
+      expect(skipped).toBe(5);
+    });
+  });
 });
 
 describe('parseFeed: the window', () => {

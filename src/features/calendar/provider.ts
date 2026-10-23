@@ -34,10 +34,10 @@ export interface ParsedFeed {
  * VEVENT is skipped and counted instead.
  */
 export function parseFeed(text: string, options: ParseOptions): ParsedFeed {
-  const calendar = parseCalendar(text);
+  const { calendar, unparseable } = parseCalendar(text);
   const window = instantWindow(options);
   const events: ParsedEvent[] = [];
-  let skipped = 0;
+  let skipped = unparseable;
   for (const group of groupByUid(calendar.getAllSubcomponents('vevent'))) {
     try {
       events.push(...occurrencesOf(group, window).map(toParsedEvent));
@@ -49,19 +49,53 @@ export function parseFeed(text: string, options: ParseOptions): ParsedFeed {
   return { events, skipped };
 }
 
-function parseCalendar(text: string): ICAL.Component {
+interface ParsedCalendar {
+  calendar: ICAL.Component;
+  /** VEVENTs whose text would not parse and were cut out of the feed. */
+  unparseable: number;
+}
+
+function parseCalendar(text: string): ParsedCalendar {
   let jcal: unknown;
+  let unparseable = 0;
   try {
     jcal = ICAL.parse(text);
-  } catch {
-    throw new NotIcsError();
+  } catch (error) {
+    // A ParserError is the feed's shape (HTML, plain text, truncated). A
+    // plain Error is one property value ical.js rejects while parsing
+    // (RRULE:FREQ=BOGUS), which is one VEVENT's fault, not the feed's.
+    if (error instanceof ICAL.parse.ParserError) throw new NotIcsError();
+    const pruned = withoutUnparseableVevents(text);
+    unparseable = pruned.removed;
+    try {
+      jcal = ICAL.parse(pruned.text);
+    } catch {
+      throw new NotIcsError();
+    }
   }
   // ICAL.parse returns [] for an empty string and a bare component for a
   // feed without a VCALENDAR wrapper; neither is a feed.
   if (!Array.isArray(jcal) || jcal[0] !== 'vcalendar') throw new NotIcsError();
   // VEVENTs stay attached to this root: that is how a TZID resolves against
   // the feed's own VTIMEZONE (ical.js 2.x needs no registration).
-  return new ICAL.Component(jcal as [string, unknown[], unknown[]]);
+  return { calendar: new ICAL.Component(jcal as [string, unknown[], unknown[]]), unparseable };
+}
+
+const VEVENT_BLOCK = /^BEGIN:VEVENT\r?\n[\s\S]*?^END:VEVENT\r?\n?/gm;
+
+/** The feed text minus every VEVENT block that does not parse on its own. */
+function withoutUnparseableVevents(text: string): { text: string; removed: number } {
+  let removed = 0;
+  const pruned = text.replace(VEVENT_BLOCK, (block) => {
+    try {
+      ICAL.parse(block);
+      return block;
+    } catch {
+      removed += 1;
+      return '';
+    }
+  });
+  return { text: pruned, removed };
 }
 
 /** The VEVENTs sharing one UID: the master and its RECURRENCE-ID overrides. */
