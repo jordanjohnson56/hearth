@@ -1,0 +1,98 @@
+/*
+ * The Day at a glance tile. Same rules as shell.css: tokens only, rem/clamp
+ * sizes, the one px value is --touch-min. The tile wrapper (.tile) is a
+ * clipped flex column; this fills it and lets the list scroll inside.
+ */
+
+.glance {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-height: 0;
+}
+
+.glance-heading {
+  margin: 0;
+  font-size: clamp(1.125rem, 1rem + 0.5vw, 1.5rem);
+  font-weight: 600;
+}
+
+.glance-note {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.glance-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+}
+
+/*
+ * The list scrolls inside the tile. A grid row grows to its content, so
+ * the list is capped in viewport terms: a busy day never pushes the Home
+ * grid off the screen, and a short phone still shows a few rows.
+ */
+.glance-list {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  min-height: 0;
+  max-height: max(8rem, 42dvh);
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+}
+
+.glance-event {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 0.625rem;
+  min-width: 0;
+  padding: 0.25rem 0 0.25rem 0.625rem;
+  border-left: 0.3125rem solid var(--color-border);
+  font-size: clamp(1rem, 0.9rem + 0.4vw, 1.25rem);
+  line-height: 1.3;
+}
+
+/* Over: dimmed, not removed. 0.6 keeps the text above 4:1 on both surfaces. */
+.glance-event[data-over] {
+  opacity: 0.6;
+}
+
+/* The source, for screen readers only; sighted readers have the color bar. */
+.glance-event-source {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.glance-event-time {
+  flex: none;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.glance-event-title {
+  flex: 1 1 10rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--color-text);
+}
+
+.glance-stale {
+  margin: auto 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+}

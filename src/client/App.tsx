@@ -15,9 +15,10 @@ const zone = configuredZone();
 
 type TileSize = 'sm' | 'wide';
 
-// M0 has no feature tiles yet: dashed placeholders show where they will go.
-// One wide slot and four small ones, as in the accepted mockup.
-const GHOST_SLOTS: readonly TileSize[] = ['wide', 'sm', 'sm', 'sm', 'sm'];
+// Dashed placeholders for future features (DESIGN section 7), after the real
+// tiles. The mockup shows one wide slot and four small ones; the calendar
+// tile took the first small one, so three small ghosts remain.
+const GHOST_SLOTS: readonly TileSize[] = ['wide', 'sm', 'sm', 'sm'];
 
 export function App() {
   useLiveUpdates();
