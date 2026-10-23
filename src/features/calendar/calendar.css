@@ -1,7 +1,7 @@
 /*
- * Calendar feature styles: the admin panel (this file), later the tile and
- * the month page. Same rules as shell.css: tokens only, rem/clamp sizes,
- * the one px value is --touch-min.
+ * Calendar feature styles: the admin panel (the tile and the month page have
+ * their own files). Same rules as shell.css: tokens only, rem/clamp sizes;
+ * px appears only through --touch-min and for hairline borders and outlines.
  */
 
 .calendar-sources {
@@ -108,9 +108,7 @@
   font-size: 1rem;
 }
 
-/* Doubled class: admin.css (bundled later) sets the PIN letter-spacing on .admin-input. */
-.admin-input.calendar-input {
-  letter-spacing: normal;
+.calendar-input {
   font-size: 1.0625rem;
 }
 
@@ -170,16 +168,6 @@
 .calendar-swatch input:focus-visible + .calendar-swatch-color {
   outline: 2px solid var(--color-focus);
   outline-offset: 2px;
-}
-
-/* Text for screen readers only (the swatch name next to its color). */
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
 }
 
 .calendar-form-actions {

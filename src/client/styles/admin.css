@@ -1,7 +1,7 @@
 /*
  * The /admin route: the PIN pad (first-run set and unlock) and the unlocked
- * panel. Same rules as shell.css: tokens only, rem/clamp sizes, the one px
- * value is --touch-min.
+ * panel. Same rules as shell.css: tokens only, rem/clamp sizes; px appears
+ * only through --touch-min and for hairline borders.
  */
 
 .admin-page {
@@ -68,21 +68,12 @@
   width: 100%;
 }
 
+/* A .button (shell.css) grown for a thumb and a big digit. */
 .pin-key {
   min-height: max(var(--touch-min), 3.5rem);
-  border: 1px solid var(--color-border);
-  border-radius: calc(var(--radius) / 1.5);
-  background: var(--color-surface-raised);
-  color: var(--color-text);
-  font: inherit;
+  padding: 0;
   font-size: 1.5rem;
   font-variant-numeric: tabular-nums;
-  cursor: pointer;
-}
-
-.pin-key:disabled {
-  opacity: 0.5;
-  cursor: default;
 }
 
 /* Unlocked panel */
@@ -145,42 +136,16 @@
   background: var(--color-surface);
   color: var(--color-text);
   font: inherit;
+  font-size: 1.125rem;
+}
+
+/* Digits typed one by one read better spaced out. */
+.admin-input-pin {
   font-size: 1.25rem;
   letter-spacing: 0.25em;
 }
 
-/*
- * The PIN spacing is for digits typed one by one; a time reads as one value,
- * and at the PIN size the browser's picker clips it in a phone-width field.
- */
+/* At the PIN size the browser's time picker clips in a phone-width field. */
 .admin-input-time {
-  letter-spacing: normal;
-  font-size: 1.125rem;
   font-variant-numeric: tabular-nums;
-}
-
-.button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: var(--touch-min);
-  min-height: var(--touch-min);
-  padding: 0 var(--space-2);
-  border: 1px solid var(--color-border);
-  border-radius: calc(var(--radius) / 1.5);
-  background: var(--color-surface-raised);
-  color: var(--color-text);
-  font: inherit;
-  cursor: pointer;
-}
-
-.button-primary {
-  border-color: var(--color-accent);
-  background: var(--color-accent);
-  color: var(--color-on-accent);
-}
-
-.button:disabled {
-  opacity: 0.5;
-  cursor: default;
 }

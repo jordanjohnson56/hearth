@@ -65,7 +65,7 @@ export function PinPad({ title, message = '', tone = 'info', busy = false, onCom
           <button
             key={key}
             type="button"
-            className="pin-key"
+            className="button pin-key"
             disabled={busy}
             onClick={() => {
               press(key);
@@ -77,7 +77,7 @@ export function PinPad({ title, message = '', tone = 'info', busy = false, onCom
         <span aria-hidden="true" />
         <button
           type="button"
-          className="pin-key"
+          className="button pin-key"
           disabled={busy}
           onClick={() => {
             press('0');
@@ -87,7 +87,7 @@ export function PinPad({ title, message = '', tone = 'info', busy = false, onCom
         </button>
         <button
           type="button"
-          className="pin-key"
+          className="button pin-key"
           aria-label="Backspace"
           disabled={busy || digits.length === 0}
           onClick={erase}

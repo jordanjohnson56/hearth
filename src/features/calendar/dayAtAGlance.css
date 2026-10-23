@@ -1,7 +1,7 @@
 /*
  * The Day at a glance tile. Same rules as shell.css: tokens only, rem/clamp
- * sizes, the one px value is --touch-min. The tile wrapper (.tile) is a
- * clipped flex column; this fills it and lets the list scroll inside.
+ * sizes, no px. The tile wrapper (.tile) is a clipped flex column; this
+ * fills it and lets the list scroll inside.
  */
 
 .glance {
@@ -65,16 +65,6 @@
 /* Over: dimmed, not removed. 0.6 keeps the text above 4:1 on both surfaces. */
 .glance-event[data-over] {
   opacity: 0.6;
-}
-
-/* The source, for screen readers only; sighted readers have the color bar. */
-.glance-event-source {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
 }
 
 .glance-event-time {

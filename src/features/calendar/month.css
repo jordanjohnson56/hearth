@@ -1,7 +1,8 @@
 /*
  * The month page. Same rules as shell.css: tokens only, rem/clamp sizes, no
- * device literals, the one px value is --touch-min. The shell's main region
- * already sizes and scrolls the page, so there is no viewport unit here.
+ * device literals; px appears only through --touch-min and for hairline
+ * borders. The shell's main region already sizes and scrolls the page, so
+ * there is no viewport unit here.
  */
 
 /* Three pills and a "+N" fit a six-row month at the reference viewport. */
@@ -34,25 +35,9 @@
   gap: var(--space-1);
 }
 
+/* A .button (shell.css) with a larger glyph. */
 .month-nav-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: var(--touch-min);
-  min-height: var(--touch-min);
-  padding: 0 var(--space-2);
-  border: 1px solid var(--color-border);
-  border-radius: calc(var(--radius) / 1.5);
-  background: var(--color-surface-raised);
-  color: var(--color-text);
-  font: inherit;
   font-size: 1.125rem;
-  cursor: pointer;
-}
-
-.month-nav-button:disabled {
-  opacity: 0.4;
-  cursor: default;
 }
 
 .month-note {

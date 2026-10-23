@@ -110,7 +110,7 @@ export function MonthPage() {
         <nav className="month-nav" aria-label="Months">
           <button
             type="button"
-            className="month-nav-button"
+            className="button month-nav-button"
             disabled={atFirst}
             aria-disabled={atFirst}
             aria-label="Previous month"
@@ -118,12 +118,12 @@ export function MonthPage() {
           >
             <span aria-hidden="true">‹</span>
           </button>
-          <button type="button" className="month-nav-button" onClick={() => { navigate('/calendar'); }}>
+          <button type="button" className="button month-nav-button" onClick={() => { navigate('/calendar'); }}>
             Today
           </button>
           <button
             type="button"
-            className="month-nav-button"
+            className="button month-nav-button"
             disabled={atLast}
             aria-disabled={atLast}
             aria-label="Next month"
@@ -259,7 +259,7 @@ function DayPanel({
     <aside className="month-day" aria-label={`Events on ${heading}`} ref={panel}>
       <header className="month-day-header">
         <h2 className="month-day-title">{heading}</h2>
-        <button type="button" className="month-nav-button" aria-label="Close" onClick={onClose}>
+        <button type="button" className="button month-nav-button" aria-label="Close" onClick={onClose}>
           <span aria-hidden="true">×</span>
         </button>
       </header>

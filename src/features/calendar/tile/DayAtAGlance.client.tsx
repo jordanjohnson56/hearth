@@ -74,7 +74,7 @@ function EventList({ events }: { events: GlanceEvent[] }) {
           data-over={event.over ? '' : undefined}
           style={{ borderColor: `var(--person-${event.color})` }}
         >
-          <span className="glance-event-source">{event.sourceLabel}: </span>
+          <span className="visually-hidden">{event.sourceLabel}: </span>
           <EventTime timing={event.timing} />
           <span className="glance-event-title">{event.title}</span>
         </li>

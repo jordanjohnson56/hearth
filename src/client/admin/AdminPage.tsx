@@ -261,7 +261,7 @@ function ChangePin() {
       <label className="admin-field">
         Current PIN
         <input
-          className="admin-input"
+          className="admin-input admin-input-pin"
           type="password"
           inputMode="numeric"
           autoComplete="off"
@@ -277,7 +277,7 @@ function ChangePin() {
       <label className="admin-field">
         New PIN
         <input
-          className="admin-input"
+          className="admin-input admin-input-pin"
           type="password"
           inputMode="numeric"
           autoComplete="off"
