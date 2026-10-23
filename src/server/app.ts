@@ -10,6 +10,7 @@ import { createBroadcaster } from './broadcaster.js';
 import type { Broadcaster } from './broadcaster.js';
 import type { Config } from './config.js';
 import { eventsHandler } from './events.js';
+import { HttpError } from './http.js';
 import { injectZone } from './index-html.js';
 import type { Logger } from './logger.js';
 
@@ -141,11 +142,14 @@ function isMissingFile(err: unknown): boolean {
 }
 
 /**
- * The HTTP error boundary. Responds with the status's reason phrase only:
- * never the error's own message (it may carry a URL or a path) and never a
- * stack trace. A 5xx is logged by method and path: never the query string
- * (`req.path` has none) and never the body, since either could carry an
- * iCal URL. The logger's `err` serializer redacts URLs in the message.
+ * The HTTP error boundary, the only place an error becomes a response. It
+ * answers with the status's reason phrase, plus the message when the error
+ * is a 4xx HttpError (a message written for the client). Any other error's
+ * message stays out of the response (it may carry a URL, a path or an echo
+ * of the request body), and there is never a stack trace. A 5xx is logged
+ * by method and path: never the query string (`req.path` has none) and
+ * never the body, since either could carry an iCal URL. The logger's `err`
+ * serializer redacts URLs in the message.
  */
 function errorBoundary(logger: Logger): ErrorRequestHandler {
   return (err: unknown, req, res, next) => {
@@ -156,8 +160,12 @@ function errorBoundary(logger: Logger): ErrorRequestHandler {
     const status = httpStatusOf(err);
     if (status >= 500) {
       logger.error({ err, method: req.method, path: req.path, status }, 'request failed');
+      sendError(res, status);
+    } else if (err instanceof HttpError) {
+      sendError(res, status, err.message);
+    } else {
+      sendError(res, status);
     }
-    sendError(res, status);
   };
 }
 
@@ -178,6 +186,7 @@ function httpStatusOf(err: unknown): number {
   return 500;
 }
 
-function sendError(res: Response, status: number): void {
-  res.status(status).json({ error: STATUS_CODES[status] ?? 'Error' });
+function sendError(res: Response, status: number, message?: string): void {
+  const error = STATUS_CODES[status] ?? 'Error';
+  res.status(status).json(message === undefined ? { error } : { error, message });
 }
