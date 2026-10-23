@@ -1,17 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { FeatureId } from '../features/types.js';
+import type { FeatureData, FeatureId } from '../features/types.js';
 import { registerRefetcher } from './liveUpdates.js';
-
-export interface FeatureData<T> {
-  /** The last successful result; kept through a failed refetch. */
-  data: T | undefined;
-  /** Why the last fetch failed, or undefined after a success. */
-  error: string | undefined;
-  /** When `data` was fetched. */
-  fetchedAt: Date | undefined;
-  /** Fetches again now (a tile after its own mutation, say). */
-  refetch: () => void;
-}
 
 /**
  * A feature's data: fetched on mount, again on every change hint for
