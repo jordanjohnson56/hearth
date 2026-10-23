@@ -1,6 +1,6 @@
 # 1. Use temporal-polyfill for zoned date math
 
-- Status: Proposed (agent recommendation, awaiting human approval on the M0.4 PR)
+- Status: Accepted (approved by Jordan on PR #12, 2026-10-23)
 - Date: 2026-10-23
 - Ticket: #7 (M0.4)
 
