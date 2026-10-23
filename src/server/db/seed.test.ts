@@ -59,7 +59,7 @@ describe('seedDataDir', () => {
   it('applies pending migrations to a fresh DATA_DIR before seeding, and closes its handle', () => {
     const { dataDir } = testConfig();
 
-    const result = seedDataDir(dataDir, serverFeatureList, NOW);
+    const result = seedDataDir(dataDir, serverFeatureList, NOW, 'America/Chicago');
 
     expect(result.applied.length).toBeGreaterThan(0);
     expect(result.people.map((p) => p.displayName)).toEqual(['Ada', 'Linus', 'Marie', 'Grace']);
@@ -74,11 +74,43 @@ describe('seedDataDir', () => {
 
   it('on a second run applies nothing and still leaves exactly four people', () => {
     const { dataDir } = testConfig();
-    seedDataDir(dataDir, serverFeatureList, NOW);
+    seedDataDir(dataDir, serverFeatureList, NOW, 'America/Chicago');
 
-    const again = seedDataDir(dataDir, serverFeatureList, NOW);
+    const again = seedDataDir(dataDir, serverFeatureList, NOW, 'America/Chicago');
 
     expect(again.applied).toEqual([]);
     expect(again.people).toHaveLength(4);
+  });
+
+  it("runs each feature's seed after the family, so a fresh DATA_DIR gets the demo chores", () => {
+    const { dataDir } = testConfig();
+
+    const result = seedDataDir(dataDir, serverFeatureList, NOW, 'America/Chicago');
+
+    expect(result.features).toEqual([
+      {
+        id: 'chores',
+        seeded: [
+          'Change the sheets',
+          'Clean the bathroom',
+          'Empty the dishwasher',
+          'Feed the dog',
+          'Sort the recycling',
+          'Take out the bins',
+          'Vacuum the hall',
+          'Wash the car',
+          'Water the plants',
+        ],
+      },
+    ]);
+  });
+
+  it('on a second run seeds the same chores again without adding any', () => {
+    const { dataDir } = testConfig();
+    const first = seedDataDir(dataDir, serverFeatureList, NOW, 'America/Chicago');
+
+    const again = seedDataDir(dataDir, serverFeatureList, new Date('2026-11-02T18:00:00Z'), 'America/Chicago');
+
+    expect(again.features).toEqual(first.features);
   });
 });

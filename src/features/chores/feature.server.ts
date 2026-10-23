@@ -1,6 +1,7 @@
-// The chores feature's server half: its tables and its router (mounted at
+// The chores feature's server half: its tables, its router (mounted at
 // /api/chores): the chore definitions (admin), the public board, claims,
-// the wall's undo and the admin corrections (void, reassign, the list).
+// the wall's undo and the admin corrections (void, reassign, the list), and
+// the demo chores for `npm run seed` (seed.ts).
 //
 // Contract (status codes):
 //   GET   /board                    200 board (public)
@@ -34,6 +35,7 @@ import { claimChore, readBoard, undoCompletion } from './board.js';
 import type { ClaimResult } from './board.js';
 import type { Completion } from './completion.js';
 import { CORRECTION_LIST_MAX_DAYS, reassignCompletion, readCorrectionList, voidAsCorrection } from './corrections.js';
+import { seedChores } from './seed.js';
 import type { BoardResponse, ChoreWire, CompletionWire, CompletionsResponse, DefinitionsResponse } from './types.js';
 
 export const MIN_POINTS = 1;
@@ -183,6 +185,7 @@ export const choresServer = {
   name: 'Chores',
   migrations,
   createRouter,
+  seed: (db, now, zone) => seedChores(db, now, zone).map((chore) => chore.name),
 } satisfies ServerFeature;
 
 // Validation. Every message is written for the admin form.

@@ -54,6 +54,13 @@ export interface ServerFeature {
   createRouter?(ctx: FeatureContext): Router;
   /** Called after migrations; the job is handed to the scheduler. */
   createJob?(ctx: FeatureContext): FeatureJob;
+  /**
+   * The feature's demo data for `npm run seed`, fictional only (DESIGN
+   * section 3). Runs after core has seeded the family, and must be safe to
+   * run again. `now` is the seed's instant and `zone` the configured zone.
+   * Returns the names of what it seeded, for the log line.
+   */
+  seed?(db: Database, now: Date, zone: string): string[];
 }
 
 /** One Home tile. A `wide` tile spans two grid columns, or the full row when only one fits. */
