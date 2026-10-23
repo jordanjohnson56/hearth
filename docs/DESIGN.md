@@ -15,7 +15,7 @@ This section is for whoever picks up the next milestone, human or agent.
 - **Some decisions this document leaves open.** They are marked **Agent proposes, human approves**. Write the proposal in the PR description (or an ADR under `docs/adr/` when it constrains future work) and wait for approval before building on it. Items in section 13 (Open questions) need a human decision before the work that depends on them starts.
 - **The privacy rails guard against the one failure that cannot be fixed later (section 3).** `.gitignore`, `.gitleaks.toml`, `.githooks/pre-commit`, `.env.example`, `scripts/privacy-check.sh` and the CI secret-scan job are reviewed by a human before any change to them merges. Never weaken a rule to get a commit through.
 - **Follow the privacy procedure in section 14 in every session.** That includes cloud sessions, where the pre-commit hook is not active by default.
-- **Domain vocabulary.** When a term in this document is resolved precisely during implementation, record it in `CONTEXT.md` at the repo root (see `docs/agents/domain.md`). When an implementation decision constrains future work, record it as an ADR under `docs/adr/`.
+- **Domain vocabulary.** When a term in this document is resolved precisely during implementation, record it in `GLOSSARY.md` at the repo root (see `docs/agents/domain.md`). When an implementation decision constrains future work, record it as an ADR under `docs/adr/`.
 
 ### Standing review criteria (every milestone)
 
