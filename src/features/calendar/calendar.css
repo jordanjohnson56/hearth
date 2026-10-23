@@ -108,7 +108,8 @@
   font-size: 1rem;
 }
 
-.calendar-input {
+/* Doubled class: admin.css (bundled later) sets the PIN letter-spacing on .admin-input. */
+.admin-input.calendar-input {
   letter-spacing: normal;
   font-size: 1.0625rem;
 }
