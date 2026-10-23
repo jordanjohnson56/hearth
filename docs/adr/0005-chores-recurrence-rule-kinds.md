@@ -63,4 +63,4 @@ only that the column is non-empty.
   other.
 - Due-date expansion is bounded by the start date and today, so a chore's
   waiting state is computed from its rule and its completion log alone;
-  no occurrence rows are stored.
+  no per-due-date rows are stored.

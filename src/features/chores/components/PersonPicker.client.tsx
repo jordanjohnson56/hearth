@@ -6,7 +6,6 @@ import '../claim.css';
 export interface PersonPickerProps {
   /** The chore being claimed, for the heading ("Who did Feed the dog?"). */
   choreName: string;
-  /** Everyone, in the order they should appear. */
   people: readonly PersonWire[];
   /** True while the claim is being sent: every choice is disabled. */
   busy: boolean;

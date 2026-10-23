@@ -57,7 +57,6 @@ function stepDays(rule: Extract<RecurrenceRule, { kind: 'every' }>): number {
   return rule.unit === 'weeks' ? rule.interval * 7 : rule.interval;
 }
 
-/** `start`, `start + step`, … up to `through`. */
 function stepping(start: LocalDate, through: LocalDate, step: number): LocalDate[] {
   const dates: LocalDate[] = [];
   for (let date = start; date <= through; date = addDays(date, step)) dates.push(date);

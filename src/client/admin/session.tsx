@@ -171,7 +171,6 @@ export async function readErrorMessage(res: Response): Promise<string> {
   return res.status === 401 ? 'Admin is locked' : `Request failed (${res.status})`;
 }
 
-/** A JSON body for an admin write. */
 export function jsonRequest(method: 'POST' | 'PATCH', body: unknown): RequestInit {
   return { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
 }

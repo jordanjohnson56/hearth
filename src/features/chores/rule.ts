@@ -12,7 +12,6 @@ export const RULE_KINDS = ['daily', 'weekly', 'every', 'monthly', 'whenever'] as
 export type RuleKind = (typeof RULE_KINDS)[number];
 
 export type RecurrenceRule =
-  /** Every date. */
   | { kind: 'daily' }
   /** The given weekdays, in week order, at least one. */
   | { kind: 'weekly'; days: Weekday[] }

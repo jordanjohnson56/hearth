@@ -467,7 +467,6 @@ function patchChore(session: AdminSession, id: number, patch: ChorePatchWire): P
   return sendAdmin(session, `/api/chores/definitions/${String(id)}`, jsonRequest('PATCH', patch));
 }
 
-/** The rule's weekday token for a `YYYY-MM-DD`. */
 function weekdayTokenOf(date: string): Weekday {
   // getUTCDay is 0 for Sunday; WEEKDAYS starts on Monday.
   return WEEKDAYS[(atUtcMidnight(date).getUTCDay() + 6) % 7] ?? 'mon';
