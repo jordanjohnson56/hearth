@@ -63,4 +63,52 @@ export default defineConfig(
       ],
     },
   },
+
+  // Server halves of features: no React, no client modules.
+  {
+    files: ['src/features/**/*.server.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            { name: 'react', message: 'Client-only: keep React out of the server bundle.' },
+            { name: 'react-dom', message: 'Client-only: keep React out of the server bundle.' },
+          ],
+          patterns: [
+            { group: ['react/*', 'react-dom/*'], message: 'Client-only: keep React out of the server bundle.' },
+            { group: ['**/client/**', '**/*.client', '**/*.client.js', '**/*.client.ts', '**/*.client.tsx'], message: 'Server code must not import client modules.' },
+          ],
+        },
+      ],
+    },
+  },
+
+  // The feature contract is imported by both bundles, so it holds types only.
+  // A value import here would drag Express into the browser or React into the
+  // server. consistent-type-imports alone misses an import used as a value.
+  {
+    files: ['src/features/types.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "ImportDeclaration[importKind!='type']",
+          message: 'src/features/types.ts is type-only: use `import type { ... }`.',
+        },
+        {
+          selector: "ExportAllDeclaration[exportKind!='type'], ExportNamedDeclaration[source][exportKind!='type']",
+          message: 'src/features/types.ts is type-only: use `export type { ... } from`.',
+        },
+        {
+          selector: ':matches(Program, ExportNamedDeclaration) > :matches(VariableDeclaration, FunctionDeclaration, ClassDeclaration, TSEnumDeclaration, TSModuleDeclaration)',
+          message: 'src/features/types.ts holds type declarations only.',
+        },
+        {
+          selector: 'ExportDefaultDeclaration',
+          message: 'src/features/types.ts holds type declarations only.',
+        },
+      ],
+    },
+  },
 );
