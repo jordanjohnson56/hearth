@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import type Database from 'better-sqlite3';
 import { serverFeatureList } from '../features/registry.server.js';
 import { createApp } from './app.js';
+import { createBroadcaster } from './broadcaster.js';
 import { loadConfig } from './config.js';
 import { prepareDatabase } from './db/database.js';
 import { createLogger } from './logger.js';
@@ -45,7 +46,10 @@ try {
 // open the Vite URL in development.
 const clientDist = fileURLToPath(new URL('../client', import.meta.url));
 
-const app = createApp({ clientDist, config, logger });
+// One hub for the process: M1's poll jobs and M2's writes publish to it.
+const broadcaster = createBroadcaster();
+
+const app = createApp({ clientDist, config, logger, broadcaster });
 
 const server = app.listen(config.port, (error?: Error) => {
   if (error !== undefined) {

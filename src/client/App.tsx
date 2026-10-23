@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { formatClock } from '../core/clock.js';
 import { clientFeatureList } from '../features/registry.client.js';
 import type { ClientFeature } from '../features/types.js';
+import { useLiveUpdates } from './liveUpdates.js';
 import { followLink, useRoute } from './router.js';
 import type { Route } from './router.js';
 import { useNow } from './useNow.js';
@@ -16,6 +17,7 @@ type TileSize = 'sm' | 'wide';
 const GHOST_SLOTS: readonly TileSize[] = ['wide', 'sm', 'sm', 'sm', 'sm'];
 
 export function App() {
+  useLiveUpdates();
   const { path, route } = useRoute();
 
   return (
