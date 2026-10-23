@@ -160,8 +160,13 @@ _Avoid_: edit, fix.
 **Waiting** (chore state): a chore with a due date on or before today that
 is later than the local date of its last unvoided completion (or its start
 date, if none). A waiting chore is claimable; a claim satisfies every due
-date up to today. A chore that is not waiting cannot be claimed.
+date up to today. A scheduled chore that is not waiting cannot be claimed.
 _Avoid_: pending, open, unclaimed.
+
+**Anytime chore**: a chore whose rule is "whenever": it has no due dates, is
+never waiting or overdue, never enters the pool, and can be claimed once per
+local day from its own section of the Chores page. _Avoid_: bonus chore,
+extra, one-off.
 
 **Overdue**: a waiting chore whose earliest unsatisfied due date is before
 today. It is one item however many due dates it has missed; its lateness
