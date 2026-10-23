@@ -38,7 +38,21 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/api': { target: `http://localhost:${apiPort}`, changeOrigin: false },
+      '/api': {
+        target: `http://localhost:${apiPort}`,
+        changeOrigin: false,
+        configure: (proxy) => {
+          // When the API server stops mid-response (tsx watch restarts it on
+          // every save), drop the browser's side too. Otherwise the proxy
+          // holds an open /api/events stream that will never carry another
+          // hint, and the client never knows to reconnect.
+          proxy.on('proxyRes', (proxyRes, _req, res) => {
+            proxyRes.on('close', () => {
+              if (!proxyRes.complete) res.destroy();
+            });
+          });
+        },
+      },
     },
   },
 });
