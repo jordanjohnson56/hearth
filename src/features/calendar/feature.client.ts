@@ -1,7 +1,9 @@
 import type { ClientFeature } from '../types.js';
+import { CalendarAdmin } from './admin/CalendarAdmin.client.js';
 
-// Stub until M1: no tile or page yet.
+// The tile and the month page land with their own tickets.
 export const calendarClient = {
   id: 'calendar',
   name: 'Calendar',
+  admin: { component: CalendarAdmin },
 } satisfies ClientFeature;

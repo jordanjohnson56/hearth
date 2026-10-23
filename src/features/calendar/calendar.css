@@ -1,0 +1,187 @@
+/*
+ * Calendar feature styles: the admin panel (this file), later the tile and
+ * the month page. Same rules as shell.css: tokens only, rem/clamp sizes,
+ * the one px value is --touch-min.
+ */
+
+.calendar-sources {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-2);
+  padding: 0;
+  list-style: none;
+}
+
+.calendar-source {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-1) var(--space-2);
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: calc(var(--radius) / 1.5);
+  background: var(--color-surface-raised);
+}
+
+.calendar-source-heading {
+  display: flex;
+  flex: 1 1 12rem;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.calendar-source-dot {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+}
+
+.calendar-source-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.calendar-source-status {
+  flex-basis: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+  gap: 0.25rem var(--space-2);
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+}
+
+.calendar-source-status dt {
+  font-weight: 600;
+}
+
+.calendar-source-status dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.calendar-source-status [data-tone='error'] {
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.calendar-source-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.calendar-source-confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  flex-basis: 100%;
+  margin: 0;
+}
+
+/* Add and edit forms */
+
+.calendar-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-2);
+  flex-basis: 100%;
+}
+
+.calendar-form .admin-message {
+  flex-basis: 100%;
+  text-align: left;
+}
+
+.calendar-form-title {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 1rem;
+}
+
+.calendar-input {
+  letter-spacing: normal;
+  font-size: 1.0625rem;
+}
+
+.calendar-field-url {
+  flex: 3 1 16rem;
+}
+
+.calendar-colors {
+  display: flex;
+  flex: 1 1 100%;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+}
+
+.calendar-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.calendar-swatch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--touch-min);
+  height: var(--touch-min);
+  cursor: pointer;
+}
+
+.calendar-swatch input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.calendar-swatch-color {
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  transition: transform 0.1s;
+}
+
+.calendar-swatch input:checked + .calendar-swatch-color {
+  border-color: var(--color-text);
+  transform: scale(1.15);
+}
+
+.calendar-swatch input:focus-visible + .calendar-swatch-color {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* Text for screen readers only (the swatch name next to its color). */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.calendar-form-actions {
+  display: flex;
+  gap: var(--space-1);
+}
