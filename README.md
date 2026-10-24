@@ -9,14 +9,17 @@ accounts and no TLS: physical access to the kitchen is the trust boundary. A
 PIN protects admin actions. Calendars are read only, from Google Calendar
 secret-address iCal URLs that the server polls.
 
-> **Status:** M1, the calendar. Hearth runs and deploys, shows the clock,
-> today's events in the Day at a glance tile and the month grid on the
-> Calendar page, reads Google Calendar secret addresses that an
+> **Status:** M2, chores and scoring. Hearth runs and deploys, shows the
+> clock, today's events in the Day at a glance tile and the month grid on
+> the Calendar page, reads Google Calendar secret addresses that an
 > administrator adds behind a PIN (see [Calendars](#calendars)), and
-> switches between light and dark at configurable times. Chores arrive in
-> M2. See [docs/DESIGN.md](docs/DESIGN.md) for the plan.
+> switches between light and dark at configurable times. The household's
+> people and chores are set up in admin; anyone at the wall claims a chore
+> in two taps, and the Leaderboard shows this week's points (see
+> [Chores](#chores)). Seasons, bonuses and avatars arrive in M3. See
+> [docs/DESIGN.md](docs/DESIGN.md) for the plan.
 
-![Hearth home screen, M1 (screenshot placeholder; the real screenshot arrives in M3)](docs/screenshot-placeholder.svg)
+![Hearth home screen, M2 (screenshot placeholder; the real screenshot arrives in M3)](docs/screenshot-placeholder.svg)
 
 ## Quick start (Docker)
 
@@ -56,8 +59,11 @@ the LAN.
   exporting it in every new shell, put `HEARTH_DATA_HOST=/absolute/path` in a
   `.env` file next to `docker-compose.yml`. Compose reads that file, and git
   ignores it.
-- The seed applies any pending migrations first, then adds the four people.
-  It upserts by display name, so it is safe to run again.
+- The seed applies any pending migrations first, then adds the four people
+  and nine fictional chores, one of every kind, with no completions: the
+  demo board has chores waiting and a leaderboard on zero. People are
+  upserted by display name and a chore is added only when its name is
+  free, so the seed is safe to run again.
 - `docker compose logs -f` follows the logs (JSON lines), and
   `docker compose down` stops Hearth. The container restarts on its own unless
   you stop it.
@@ -87,12 +93,12 @@ it, Hearth uses the default. `PORT` and `DATA_DIR` in `.env` have no effect
 under Docker. Outside Docker, Hearth reads only the process environment, so
 set the variables in your shell, for example `TZ=Europe/Paris npm start`.
 
-## Calendars
+## Admin
 
-Hearth shows Google Calendar calendars that it reads through their secret
-addresses. An administrator sets them up from the wall or from any device
-on the LAN. Nothing in this section touches the repository: the PIN, the
-addresses and the events live in the database under `DATA_DIR`.
+An administrator sets Hearth up from the wall or from any device on the
+LAN: the people, the calendars, the chores, the theme times and the PIN.
+Nothing here touches the repository. All of it lives in the database
+under `DATA_DIR`.
 
 ### Unlock admin
 
@@ -107,8 +113,36 @@ addresses and the events live in the database under `DATA_DIR`.
    section 3).
 4. An unlocked session lasts 10 minutes from its last use and 60 minutes at
    most. **Lock now**, a page reload and a server restart all lock it at
-   once. Unlocked, the page shows **Change PIN**, **Theme** and
-   **Calendar**.
+   once. Unlocked, the page shows **People**, **Change PIN**, **Theme**,
+   **Calendar** and **Chores**.
+
+### People
+
+Under **People**, the admin panel lists everyone, each with a colored
+initial as their avatar. **Add a person** takes a name and a color from the
+palette (the first color nobody has is preselected). **Edit** renames or
+recolors someone in place. Names are unique ignoring case, so a second
+"ada" is refused. There is no hiding or removal. The wall picks up a change
+within five minutes.
+
+The seed adds the fictional family Ada, Linus, Marie and Grace. A real
+household renames them with **Edit** and adds the rest with **Add a
+person**, so the board never needs the seed's names.
+
+### Theme times
+
+Under **Theme**, **Light from** and **Dark from** are the two times of day
+at which the display switches, in 24-hour `HH:MM`. The defaults are 07:00
+and 19:30. Either order works, so the dark period (or the light one) may
+wrap midnight; the two times must differ. They are evaluated in the
+household's `TZ`, not the device's zone. A save applies at once on the
+device that made it, and the wall follows within five minutes. There is no
+manual toggle.
+
+## Calendars
+
+Hearth shows Google Calendar calendars that it reads through their secret
+addresses. Unlock admin first (see [Admin](#admin)).
 
 ### Add a calendar
 
@@ -174,16 +208,6 @@ successful fetch is more than an hour old, the Day at a glance tile adds a
 line such as "Calendar updated 3 hours ago". The tile and the Calendar page
 update on their own when a fetch changes anything.
 
-### Theme times
-
-Under **Theme**, **Light from** and **Dark from** are the two times of day
-at which the display switches, in 24-hour `HH:MM`. The defaults are 07:00
-and 19:30. Either order works, so the dark period (or the light one) may
-wrap midnight; the two times must differ. They are evaluated in the
-household's `TZ`, not the device's zone. A save applies at once on the
-device that made it, and the wall follows within five minutes. There is no
-manual toggle.
-
 ### Where the data lives
 
 Everything above is in the SQLite database `hearth.db` under `DATA_DIR`
@@ -192,6 +216,88 @@ their own that only the fetcher reads. They never leave the server: the
 API, the logs and the browser see the host-plus-hash form only. If an
 address does leak elsewhere, reset it in Google Calendar and paste the new
 one with **Edit**.
+
+## Chores
+
+Chores are a shared pool: nobody is assigned a chore. Whoever does one
+claims it at the wall and earns its points, and the Leaderboard shows who
+is ahead this week. The people come from [People](#people).
+
+### Add a chore
+
+Under **Chores** in admin, **Add a chore** takes a name, how often it
+repeats, its points (1 to 1000) and a start date, which defaults to today
+in the household's `TZ`. **Repeats** is a row of buttons:
+
+| Choice | Example | Due |
+|---|---|---|
+| **Daily** | Feed the dog | Every day from the start date. |
+| **Weekdays** | Take out the bins, on Mon and Thu | Each chosen weekday. |
+| **Every N**, **Days** or **Weeks** | Water the plants, every 3 days; Clean the bathroom, every 2 weeks | Every N days from the start date, or every N weeks on the start date's weekday. N is 2 or more; once is **Daily** or **Weekdays**. |
+| **Monthly** | Change the sheets, on day 1 | That day of each month. Day 31 (or 29, 30) falls on the last day of a shorter month. |
+| **Whenever** | Wash the car | Never due. An anytime chore: claim it on any day, once a day at most. |
+
+A line under the form reads the rule back, such as "Weekly on Mon, Thu".
+A start date in the future keeps a chore off the board until then. Names
+are unique ignoring case, so a second "feed the dog" is refused.
+
+Each row has **Edit** (name, rule, points, start date) and **Archive**.
+There is no delete: an archived chore leaves the board at once and keeps
+its history, and **Show archived** lists it with **Unarchive**. A new point
+value counts from the next claim on; past weeks keep the points they had.
+A household that started from the demo archives the seed's chores it does
+not want.
+
+### When a chore is waiting
+
+A chore with a due date on or before today that nobody has claimed since
+is **waiting**. It is **overdue** when that date is before today, and the
+row says how late, such as "3 days late". However many due dates it
+missed, a chore is one row, and one claim clears its whole backlog; missed
+dates earn nothing. A chore that is not waiting cannot be claimed, so
+nobody can claim the weekly vacuum every day. The board turns over at
+midnight in the household's `TZ` on its own.
+
+### Claim a chore
+
+1. Tap the chore, in **Chores today** on Home or on the Chores page.
+2. Tap who did it. The picker shows everyone, as an initial on their color
+   and their name.
+3. A toast says, for example, "Ada did Feed the dog, +2", with **Undo** for
+   10 seconds. The chore leaves the pool and Ada's points go up on every
+   screen within a second.
+
+**Undo** within those 10 seconds takes the claim back. After that, only an
+administrator can (see [Corrections](#corrections)), so a child cannot
+undo a sibling's chore an hour later.
+
+### What the board shows
+
+- **Chores today** (Home, wide): the waiting chores, overdue first (the
+  latest at the top), then those due today, and by points within each. It shows five and a
+  "+N more" link to the Chores page. When nothing is waiting it says so.
+- **Leaderboard** (Home): everyone's points this week, Monday 00:00 to the
+  next Monday in the household's `TZ`. People on zero are listed, and equal
+  points share a rank. It starts again on Monday.
+- **Chores page** (the Chores tab): **Waiting**, all of it; **Anytime**,
+  each with "Done today" once claimed today; **Upcoming**, each with its
+  next due date ("Tomorrow", "Thursday", "Mon, Nov 30"); and **Recent**,
+  this week's claims with who and when ("Linus · Yesterday, 6:30 PM").
+
+### Corrections
+
+Under **Chores** in admin, **Completions, last 14 days** lists every claim,
+newest first, with the person, the points and the time.
+
+- **Void** (then **Void it** to confirm) takes back a claim that was not
+  actually done. It earns nothing, and the chore is waiting again if it is
+  due.
+- **Reassign** opens the picker without the current person: Linus claimed
+  the dishwasher Marie emptied, so choose Marie. The claim keeps its time
+  and its points, so a Sunday chore fixed on Monday stays in last week.
+
+Nothing is deleted. A voided claim stays in the list, struck through, with
+"Voided: correction" or "Voided: undone at the wall".
 
 ## Development
 
@@ -205,7 +311,7 @@ npm ci
 npm run dev          # server (port 4400) plus Vite with hot reload; open http://localhost:5173
 npm run build        # client to dist/client, server to dist/server
 npm start            # run the build on http://localhost:4400
-npm run seed         # seed the fictional family into DATA_DIR (uses the build; run npm run build first)
+npm run seed         # seed the fictional family and demo chores into DATA_DIR (uses the build; run npm run build first)
 npm run seed:dev     # the same, straight from the TypeScript sources
 
 npm run typecheck

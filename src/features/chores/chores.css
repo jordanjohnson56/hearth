@@ -1,0 +1,300 @@
+/*
+ * Chores feature styles: the admin panel. Same rules as shell.css: tokens
+ * only, rem/clamp sizes; px appears only through --touch-min and for
+ * hairline borders and outlines.
+ */
+
+.chores-admin-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 var(--space-2);
+}
+
+.chores-admin-toolbar .button[aria-pressed='true'] {
+  border-color: var(--color-text);
+}
+
+.chores-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-2);
+  padding: 0;
+  list-style: none;
+}
+
+.chores-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-1) var(--space-2);
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: calc(var(--radius) / 1.5);
+  background: var(--color-surface-raised);
+}
+
+.chores-row[data-archived='true'] .chores-row-summary {
+  color: var(--color-text-muted);
+}
+
+.chores-row-summary {
+  display: flex;
+  flex: 1 1 14rem;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.chores-row-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.chores-row-tag {
+  padding: 0 0.5em;
+  border: 1px solid var(--color-border);
+  border-radius: 999rem;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.chores-row-detail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-2);
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+}
+
+.chores-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.chores-row .admin-message {
+  flex-basis: 100%;
+  text-align: left;
+}
+
+/* Add and edit forms */
+
+.chores-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-2);
+  flex-basis: 100%;
+}
+
+.chores-form .admin-message {
+  flex-basis: 100%;
+  text-align: left;
+}
+
+.chores-form-title {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 1rem;
+}
+
+.chores-form-actions {
+  display: flex;
+  flex-basis: 100%;
+  gap: var(--space-1);
+}
+
+.chores-input {
+  font-size: 1.0625rem;
+}
+
+.chores-form .chores-field-name {
+  flex: 1 1 100%;
+}
+
+/* Over .admin-field's grow: a few digits need no full row. */
+.chores-form .chores-field-number {
+  flex: 0 1 8rem;
+}
+
+.chores-form .chores-field-date {
+  flex: 0 1 12rem;
+}
+
+/* The rule picker: radio and checkbox inputs drawn as buttons. */
+
+.chores-choice {
+  display: flex;
+  flex: 1 1 100%;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+}
+
+.chores-choice-inline {
+  flex: 0 1 auto;
+}
+
+.chores-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.chores-option {
+  position: relative;
+  display: inline-flex;
+}
+
+.chores-option input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.chores-option span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--touch-min);
+  min-height: var(--touch-min);
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: calc(var(--radius) / 1.5);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 1rem;
+}
+
+.chores-option-day span {
+  padding: 0 var(--space-1);
+  min-width: max(var(--touch-min), 3.25rem);
+}
+
+.chores-option input:checked + span {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+.chores-option input:focus-visible + span {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.chores-every {
+  display: flex;
+  flex: 1 1 100%;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+
+.chores-rule-preview {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+}
+
+/* The correction list: the last 14 days of completions. */
+
+.chores-completions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+}
+
+.chores-completion-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chores-completion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: calc(var(--radius) / 1.5);
+  background: var(--color-surface-raised);
+  --avatar-size: 2.25rem;
+}
+
+.chores-completion-summary {
+  display: flex;
+  flex: 1 1 16rem;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.chores-completion-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.chores-completion-line {
+  margin: 0;
+  font-size: 1.0625rem;
+  overflow-wrap: anywhere;
+}
+
+.chores-completion-chore {
+  font-weight: 600;
+}
+
+.chores-completion-detail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem var(--space-1);
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+}
+
+.chores-completion[data-voided='true'] {
+  background: var(--color-surface);
+}
+
+.chores-completion[data-voided='true'] .chores-completion-line {
+  color: var(--color-text-muted);
+}
+
+.chores-completion[data-voided='true'] .person-avatar {
+  opacity: 0.55;
+}
+
+.chores-completion .admin-message {
+  flex-basis: 100%;
+  text-align: left;
+}

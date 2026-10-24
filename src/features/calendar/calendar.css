@@ -116,60 +116,6 @@
   flex: 3 1 16rem;
 }
 
-.calendar-colors {
-  display: flex;
-  flex: 1 1 100%;
-  flex-direction: column;
-  gap: 0.25rem;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  color: var(--color-text-muted);
-  font-size: 0.9375rem;
-}
-
-.calendar-swatches {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1);
-}
-
-.calendar-swatch {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--touch-min);
-  height: var(--touch-min);
-  cursor: pointer;
-}
-
-.calendar-swatch input {
-  position: absolute;
-  inset: 0;
-  margin: 0;
-  opacity: 0;
-  cursor: pointer;
-}
-
-.calendar-swatch-color {
-  width: 1.75rem;
-  height: 1.75rem;
-  border: 2px solid transparent;
-  border-radius: 50%;
-  transition: transform 0.1s;
-}
-
-.calendar-swatch input:checked + .calendar-swatch-color {
-  border-color: var(--color-text);
-  transform: scale(1.15);
-}
-
-.calendar-swatch input:focus-visible + .calendar-swatch-color {
-  outline: 2px solid var(--color-focus);
-  outline-offset: 2px;
-}
-
 .calendar-form-actions {
   display: flex;
   gap: var(--space-1);

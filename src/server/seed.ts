@@ -22,14 +22,15 @@ const { config } = result;
 const logger = createLogger(config.logLevel);
 
 try {
-  const { applied, people } = seedDataDir(config.dataDir, serverFeatureList, new Date());
+  const { applied, people, features } = seedDataDir(config.dataDir, serverFeatureList, new Date(), config.zone);
   logger.info(
     {
       dataDir: config.dataDir,
       applied: applied.map((m) => `${m.scope}#${String(m.id)} ${m.name}`),
       people: people.map((p) => p.displayName),
+      features: Object.fromEntries(features.map((f) => [f.id, f.seeded])),
     },
-    'seeded the fictional family',
+    'seeded the fictional family and the demo data',
   );
 } catch (error) {
   logger.fatal({ err: error }, 'cannot seed the database');

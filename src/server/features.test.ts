@@ -8,7 +8,7 @@ import { createApp } from './app.js';
 import { createBroadcaster } from './broadcaster.js';
 import { upsertPersonByDisplayName } from './db/personRepository.js';
 
-/** A test-only feature standing in for chores, the registered stub that has no router yet. */
+/** A test-only feature standing in for chores, with a router of its own. */
 function choresWithPing(): ServerFeature {
   return {
     id: 'chores',
@@ -117,10 +117,12 @@ describe('feature routers', () => {
     expect(lines()[0]).toMatchObject({ method: 'GET', path: '/api/chores/boom', status: 500 });
   });
 
-  // Calendar has had a router since M1, so this covers chores alone: the
-  // registered stub without one must mount nothing under /api/chores.
-  it('mounts no feature routes for the chores stub, which has no router yet', async () => {
-    const res = await request(testApp()).get('/api/chores');
+  // Every registered feature has a router now, so a test-only stand-in
+  // covers the optional createRouter: a feature without one mounts nothing.
+  it('mounts no routes for a feature without a router', async () => {
+    const routerless: ServerFeature = { id: 'chores', name: 'Routerless chores', migrations: [] };
+
+    const res = await request(testApp({ features: [routerless] })).get('/api/chores/definitions');
 
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Not Found' });

@@ -11,6 +11,18 @@ import type { Config } from '../server/config.js';
 
 export type FeatureId = 'calendar' | 'chores';
 
+/** What useFeatureData and sharedFeatureData.ts give a tile or page. */
+export interface FeatureData<T> {
+  /** The last successful result; kept through a failed refetch. */
+  data: T | undefined;
+  /** Why the last fetch failed, or undefined after a success. */
+  error: string | undefined;
+  /** When `data` was fetched. */
+  fetchedAt: Date | undefined;
+  /** Fetches again now (a tile after its own mutation, say). */
+  refetch: () => void;
+}
+
 export interface Migration {
   id: number;
   name: string;
@@ -54,12 +66,26 @@ export interface ServerFeature {
   createRouter?(ctx: FeatureContext): Router;
   /** Called after migrations; the job is handed to the scheduler. */
   createJob?(ctx: FeatureContext): FeatureJob;
+  /**
+   * The feature's demo data for `npm run seed`, fictional only (DESIGN
+   * section 3). Runs after core has seeded the family, and must be safe to
+   * run again. `now` is the seed's instant and `zone` the configured zone.
+   * Returns the names of what it seeded, for the log line.
+   */
+  seed?(db: Database, now: Date, zone: string): string[];
+}
+
+/** One Home tile. A `wide` tile spans two grid columns, or the full row when only one fits. */
+export interface FeatureTile {
+  component: FC;
+  size: 'sm' | 'wide';
 }
 
 export interface ClientFeature {
   id: FeatureId;
   name: string;
-  tile?: { component: FC; size: 'sm' | 'wide' };
+  /** The feature's Home tiles, in order. Wide tiles lead the grid, then the rest in nav order. */
+  tiles?: readonly FeatureTile[];
   page?: { component: FC; icon: string };
   /**
    * The feature's admin panel, rendered by the core /admin route below the

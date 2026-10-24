@@ -1,8 +1,10 @@
 // Repository for the person table: the only module that holds SQL about
 // people. Display names are unique ignoring case (person_display_name index).
 import type { Database } from 'better-sqlite3';
+import type { PersonWire } from '../../core/person.js';
 import { isPersonColor } from '../../core/personColor.js';
 import type { PersonColor } from '../../core/personColor.js';
+import { withUniqueName } from './uniqueName.js';
 
 export interface Person {
   id: number;
@@ -18,6 +20,17 @@ export interface Person {
 export interface PersonInput {
   displayName: string;
   color: PersonColor;
+}
+
+/** The fields an admin may change; avatar and icon are not among them. */
+export type PersonPatch = Partial<PersonInput>;
+
+/** The display name is taken by someone else, ignoring case. */
+export class DuplicateDisplayNameError extends Error {
+  override name = 'DuplicateDisplayNameError';
+  constructor() {
+    super('Someone already has that name');
+  }
 }
 
 interface PersonRow {
@@ -42,10 +55,52 @@ function toPerson(row: PersonRow): Person {
   };
 }
 
+export function toPersonWire(person: Person): PersonWire {
+  return { id: person.id, displayName: person.displayName, color: person.color, icon: person.icon };
+}
+
 /** Everyone, in the order they were created. */
 export function listPeople(db: Database): Person[] {
   const rows = db.prepare(`SELECT ${COLUMNS} FROM person ORDER BY id`).all() as PersonRow[];
   return rows.map(toPerson);
+}
+
+export function getPerson(db: Database, id: number): Person | undefined {
+  const row = db.prepare(`SELECT ${COLUMNS} FROM person WHERE id = ?`).get(id) as PersonRow | undefined;
+  return row === undefined ? undefined : toPerson(row);
+}
+
+/** Inserts a new person without avatar or icon. Throws DuplicateDisplayNameError. */
+export function insertPerson(db: Database, input: PersonInput): Person {
+  checkColor(input.color);
+  const row = withNameCheck(
+    () =>
+      db
+        .prepare(`INSERT INTO person (display_name, color) VALUES (?, ?) RETURNING ${COLUMNS}`)
+        .get(input.displayName, input.color) as PersonRow,
+  );
+  return toPerson(row);
+}
+
+/**
+ * Changes the display name and/or color; the id, avatar and icon are kept.
+ * Returns the row, or undefined when there is no such person. Throws
+ * DuplicateDisplayNameError when the new name is someone else's.
+ */
+export function updatePerson(db: Database, id: number, patch: PersonPatch): Person | undefined {
+  if (patch.color !== undefined) checkColor(patch.color);
+  const row = withNameCheck(
+    () =>
+      db
+        .prepare(
+          `UPDATE person
+           SET display_name = coalesce(?, display_name), color = coalesce(?, color)
+           WHERE id = ?
+           RETURNING ${COLUMNS}`,
+        )
+        .get(patch.displayName ?? null, patch.color ?? null, id) as PersonRow | undefined,
+  );
+  return row === undefined ? undefined : toPerson(row);
 }
 
 /**
@@ -54,9 +109,7 @@ export function listPeople(db: Database): Person[] {
  * avatar and icon of an existing person are kept.
  */
 export function upsertPersonByDisplayName(db: Database, input: PersonInput): Person {
-  if (!isPersonColor(input.color)) {
-    throw new RangeError(`not a person color: ${JSON.stringify(input.color)}`);
-  }
+  checkColor(input.color);
   const row = db
     .prepare(
       `INSERT INTO person (display_name, color) VALUES (?, ?)
@@ -66,4 +119,13 @@ export function upsertPersonByDisplayName(db: Database, input: PersonInput): Per
     )
     .get(input.displayName, input.color) as PersonRow;
   return toPerson(row);
+}
+
+/** A token outside the palette is a caller bug; the router checks input first. */
+function checkColor(color: string): void {
+  if (!isPersonColor(color)) throw new RangeError(`not a person color: ${JSON.stringify(color)}`);
+}
+
+function withNameCheck<T>(write: () => T): T {
+  return withUniqueName(write, 'person.display_name', () => new DuplicateDisplayNameError());
 }

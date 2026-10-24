@@ -125,3 +125,57 @@ icon, else a colored initial.
 **Person color**: a palette token such as `ember` or `lake`
 (`src/core/personColor.ts`), never a color value. Each theme maps the token to
 a value with at least 4.5:1 contrast on its surfaces. Avoid: hex color.
+
+**Chore**: a named, repeatable piece of housework with a recurrence rule, a
+point value and a start date. A chore is archived, never deleted. It has no
+owner: chores are a shared pool, not assignments. _Avoid_: task, assignment.
+
+**Recurrence rule** (rule): the schedule that says on which local dates a
+chore is to be done, in Hearth's own small set of kinds (daily, weekly on
+given weekdays, every N days or weeks, monthly on a day, whenever). It is
+not an iCalendar RRULE. _Avoid_: RRULE, schedule.
+
+**Due date** (chore): a local date on which a chore's rule says it is to be
+done, on or after its start date. Not "occurrence", which is a calendar
+term.
+
+**Claim**: the act of tapping a chore and then a person at the wall, which
+records a completion. Anyone at the wall may claim; no PIN. _Avoid_:
+check off, assign.
+
+**Completion**: the record that a person did a chore at an instant, with the
+points awarded copied from the chore at that moment. Completions are never
+edited or removed; a mistaken one is voided. _Avoid_: check, done record.
+
+**Void**: the record that a completion no longer counts, with a reason: an
+undo (made at the wall within seconds of the claim) or a correction (made by
+an admin). A voided completion earns nothing and satisfies nothing.
+_Avoid_: delete, revert.
+
+**Correction**: an admin action on a completion after the undo window: a
+void, or a reassignment, which voids the completion and records a new one
+for another person at the original instant with the original points.
+_Avoid_: edit, fix.
+
+**Waiting** (chore state): a chore with a due date on or before today that
+is later than the local date of its last unvoided completion (or its start
+date, if none). A waiting chore is claimable; a claim satisfies every due
+date up to today. A scheduled chore that is not waiting cannot be claimed.
+_Avoid_: pending, open, unclaimed.
+
+**Anytime chore**: a chore whose rule is "whenever": it has no due dates, is
+never waiting or overdue, never enters the pool, and can be claimed once per
+local day from its own section of the Chores page. _Avoid_: bonus chore,
+extra, one-off.
+
+**Overdue**: a waiting chore whose earliest unsatisfied due date is before
+today. It is one item however many due dates it has missed; its lateness
+is the days since that earliest date. _Avoid_: late, missed (as a count).
+
+**Due today**: a waiting chore whose earliest unsatisfied due date is today.
+
+**Pool**: the set of waiting chores, shown overdue first, then by points.
+_Avoid_: todo list, queue.
+
+**Leaderboard**: every person's points for the current week, highest first,
+equal points sharing a rank, zero included. _Avoid_: scoreboard, ranking.
