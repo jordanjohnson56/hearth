@@ -41,7 +41,7 @@ import type { BoardResponse, ChoreWire, CompletionsResponse, DefinitionsResponse
 export const MIN_POINTS = 1;
 export const MAX_POINTS = 1000;
 
-// The DDL needs a human's approval (M2 spec). Conventions: docs/adr/0002.
+// DDL approved on PR #35. Conventions: docs/adr/0002.
 const migrations: readonly Migration[] = [
   {
     id: 1,
