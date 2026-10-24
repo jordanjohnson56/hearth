@@ -1,6 +1,6 @@
 # 4. Instants on the wire are epoch-millisecond numbers
 
-- Status: Proposed (needs human approval on PR #24)
+- Status: Accepted (approved by Jordan on PR #24, 2026-10-23)
 - Date: 2026-10-23
 - Ticket: #17 (M1.3)
 
