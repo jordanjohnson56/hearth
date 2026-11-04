@@ -44,13 +44,15 @@
   white-space: pre;
 }
 
-/* The month in marker, as on the board; the year stays small beside it. */
+/* The month in marker, as on the board (Permanent Marker, Apache-2.0,
+   bundled by MonthPage); the year stays small beside it in the app font. */
 .month-title-name {
   color: var(--color-accent);
+  font-family: 'Permanent Marker', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   font-size: clamp(1.75rem, 1.2rem + 2vw, 3rem);
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-weight: 400;
   line-height: 1.1;
+  margin-right: 0.15em;
 }
 
 .month-title-rest {
