@@ -5,9 +5,19 @@
  * there is no viewport unit here.
  */
 
-/* Three pills and a "+N" fit a six-row month at the reference viewport. */
+/*
+ * The grid is drawn like the family's whiteboard: one board ruled with thin
+ * lines, a boxed date in each square's top-right corner, events written
+ * straight onto the board in their person's color (every --person-* token
+ * holds 4.5:1 on each surface, test/personPaletteContrast.test.ts), and a
+ * multi-day event as one title with a line across its days, along the
+ * bottom of the week. Three lines and a "+N" fit a six-row month at the
+ * reference viewport.
+ */
 .month-page {
-  --month-pill-size: clamp(0.75rem, 0.5rem + 0.4vw, 0.9375rem);
+  --month-text-size: clamp(0.75rem, 0.5rem + 0.45vw, 1rem);
+  --month-line: calc(var(--month-text-size) * 1.35);
+  --month-rule: 1px solid var(--color-text-muted);
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -25,9 +35,26 @@
 }
 
 .month-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
   margin: 0;
-  font-size: clamp(1.375rem, 1.1rem + 1.2vw, 2rem);
+  font-size: clamp(1.25rem, 1rem + 1vw, 1.75rem);
   font-weight: 600;
+  white-space: pre;
+}
+
+/* The month in marker, as on the board; the year stays small beside it. */
+.month-title-name {
+  color: var(--color-accent);
+  font-size: clamp(1.75rem, 1.2rem + 2vw, 3rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+
+.month-title-rest {
+  color: var(--color-text-muted);
 }
 
 .month-nav {
@@ -63,49 +90,81 @@
   min-height: 0;
 }
 
-.month-grid-wrap {
+.month-board {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  gap: 0.25rem;
   min-width: 0;
+  border-top: var(--month-rule);
+  border-left: var(--month-rule);
+  background: var(--color-surface);
 }
 
 .month-weekdays,
-.month-grid {
+.month-week {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 0.25rem;
 }
 
 .month-weekday {
   overflow: hidden;
+  padding: 0.375rem 0.25rem;
+  border-right: var(--month-rule);
+  border-bottom: var(--month-rule);
   color: var(--color-text-muted);
   font-size: clamp(0.6875rem, 0.6rem + 0.3vw, 0.875rem);
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-align: center;
   text-overflow: ellipsis;
   text-transform: uppercase;
   white-space: nowrap;
 }
 
-/* Rows share the page height; a busy month scrolls the main region instead
-   of squeezing below the tap minimum. */
-.month-grid {
-  grid-auto-rows: minmax(max(var(--touch-min), 4.5rem), 1fr);
+.month-weekday-long {
+  display: none;
 }
 
+@container main (width >= 64rem) {
+  .month-body:not([data-panel-open]) .month-weekday-short {
+    display: none;
+  }
+
+  .month-body:not([data-panel-open]) .month-weekday-long {
+    display: inline;
+  }
+}
+
+/* Weeks share the page height; a busy month scrolls the main region instead
+   of squeezing below the tap minimum. */
+.month-grid {
+  display: grid;
+  grid-auto-rows: minmax(max(var(--touch-min), 4.5rem), 1fr);
+  min-height: 0;
+}
+
+/* Each day square fills its column top to bottom; the multi-day lines sit
+   on top of the squares in the rows along the bottom. */
+.month-week {
+  grid-template-rows: minmax(0, 1fr) auto auto;
+}
+
+/* A flex column so the writing starts at the top: a button centers its
+   content otherwise. The board span inside is a plain block, so the date
+   can float in its corner. */
 .month-cell {
   display: flex;
   flex-direction: column;
+  justify-content: flex-start;
   align-items: stretch;
-  gap: 0.0625rem;
+  grid-row: 1 / -1;
   min-width: 0;
   min-height: var(--touch-min);
-  padding: 0.25rem;
-  border: 1px solid var(--color-border);
-  border-radius: calc(var(--radius) / 2);
-  background: var(--color-surface);
+  padding: 0.25rem 0.375rem;
+  border: 0;
+  border-right: var(--month-rule);
+  border-bottom: var(--month-rule);
+  border-radius: 0;
+  background: transparent;
   color: var(--color-text);
   font: inherit;
   text-align: left;
@@ -113,98 +172,187 @@
   cursor: pointer;
 }
 
-.month-cell[data-in-month='false'] {
-  opacity: 0.45;
+.month-cell-board {
+  display: block;
+  min-width: 0;
 }
 
-.month-cell[aria-current='date'] {
-  border-color: var(--color-accent);
-  box-shadow: inset 0 0 0 1px var(--color-accent);
+.month-week[data-lanes='1'] .month-cell {
+  padding-bottom: calc(0.25rem + var(--month-line));
+}
+
+.month-week[data-lanes='2'] .month-cell {
+  padding-bottom: calc(0.25rem + 2 * var(--month-line));
 }
 
 .month-cell[aria-pressed='true'] {
   background: var(--color-surface-raised);
 }
 
+.month-cell[data-in-month='false'] .month-cell-day,
+.month-cell[data-in-month='false'] .month-entry,
+.month-cell[data-in-month='false'] .month-more {
+  opacity: 0.45;
+}
+
+/* The boxed date: the square's own top and right rules close the box, so
+   it draws only its left and bottom edges. The first line of writing runs
+   beside it, as on the board. */
 .month-cell-day {
-  flex: none;
-  color: var(--color-text-muted);
-  font-size: clamp(0.8125rem, 0.7rem + 0.4vw, 1rem);
+  float: right;
+  min-width: 1.9em;
+  height: 1.9em;
+  margin: -0.25rem -0.375rem 0.125rem 0.25rem;
+  padding: 0 0.25em;
+  border-bottom: var(--month-rule);
+  border-left: var(--month-rule);
+  color: var(--color-text);
+  font-size: clamp(0.875rem, 0.7rem + 0.5vw, 1.25rem);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  line-height: 1.2;
+  line-height: 1.9;
+  text-align: center;
 }
 
 .month-cell[aria-current='date'] .month-cell-day {
-  color: var(--color-accent);
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
 }
 
-.month-cell-pills {
-  display: flex;
-  flex-direction: column;
-  gap: 0.0625rem;
-  min-width: 0;
-}
-
-/* A pill keeps the text color and carries its source as a left edge, so it
-   reads in both themes without a contrast check per color. */
-.month-pill {
+.month-entry {
   display: block;
-  min-width: 0;
-  padding: 0 0.25rem;
-  border: 0 solid transparent;
-  border-left-width: 0.25rem;
-  border-radius: 0.25rem;
-  background: var(--color-surface-raised);
-  font-size: var(--month-pill-size);
-  line-height: 1.25;
-  white-space: nowrap;
   overflow: hidden;
+  font-size: var(--month-text-size);
+  font-weight: 600;
+  line-height: 1.35;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.month-pill-time {
-  margin-right: 0.3em;
-  color: var(--color-text-muted);
+.month-entry-time {
+  margin-right: 0.25em;
   font-variant-numeric: tabular-nums;
+  font-weight: 500;
 }
 
 .month-more {
+  display: block;
   color: var(--color-text-muted);
-  font-size: var(--month-pill-size);
+  font-size: var(--month-text-size);
   font-weight: 600;
-  line-height: 1.25;
+  line-height: 1.35;
+}
+
+/* A multi-day event: title, then a line to a tick at its last day. Taps go
+   through to the squares beneath. */
+.month-span {
+  display: flex;
+  z-index: 1;
+  align-items: center;
+  gap: 0.3em;
+  min-width: 0;
+  height: var(--month-line);
+  padding: 0 0.5rem;
+  font-size: var(--month-text-size);
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.month-span-title {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.month-span-line {
+  position: relative;
+  flex: 1 0 1rem;
+  border-top: 2px solid currentColor;
+}
+
+.month-span-line::after {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 0.8em;
+  border-right: 2px solid currentColor;
+  transform: translateY(-50%);
+  content: '';
+}
+
+/* Carried on from last week: a short lead-in line before the title, and no
+   gap at the board's left edge. */
+.month-span[data-before] {
+  padding-left: 0;
+}
+
+.month-span-lead {
+  flex: 0 0 0.75rem;
+}
+
+.month-span-lead::after,
+.month-span[data-after] .month-span-line::after {
+  content: none;
+}
+
+/* Carries on into next week: the line runs off the edge, no tick. */
+.month-span[data-after] {
+  padding-right: 0;
 }
 
 /* Narrow page (a phone in portrait, a small landscape phone): a title would
-   be a few letters per cell, so each pill collapses to a dot in its source
-   color and the "+N" keeps the count. The cell stays a full tap target and
-   the day panel still lists everything. The gaps shrink too: at a 360px
-   viewport, seven columns with 0.25rem gaps fall just under --touch-min. */
+   be a few letters per square, so each entry collapses to a dot in its
+   person's color and a multi-day event to its bare line; the "+N" keeps the
+   count, the square stays a full tap target and the day panel still lists
+   everything. */
 @container main (width < 40rem) {
-  .month-weekdays,
-  .month-grid {
-    gap: 0.125rem;
+  .month-page {
+    --month-line: 0.5rem;
   }
 
-  .month-cell-pills {
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.1875rem;
+  .month-cell {
+    padding: 0.125rem;
   }
 
-  .month-pill {
-    width: 0;
-    height: 0;
+  .month-cell-day {
+    float: none;
+    display: block;
+    min-width: 0;
+    height: auto;
+    margin: 0 0 0.125rem;
     padding: 0;
-    border-width: 0.3125rem;
+    border: 0;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+  }
+
+  .month-cell[aria-current='date'] .month-cell-day {
+    border-radius: 0.25rem;
+  }
+
+  .month-entry {
+    display: inline-block;
+    width: 0.625rem;
+    height: 0.625rem;
+    margin: 0 0.1875rem 0.1875rem 0;
     border-radius: 50%;
+    background: currentColor;
     font-size: 0;
   }
 
-  .month-pill > * {
+  .month-span {
+    padding: 0 0.125rem;
+  }
+
+  .month-span-title {
     display: none;
+  }
+
+  .month-span-line::after {
+    height: 0.5rem;
   }
 }
 
@@ -282,7 +430,7 @@
     align-items: start;
   }
 
-  .month-body[data-panel-open] .month-grid-wrap {
+  .month-body[data-panel-open] .month-board {
     align-self: stretch;
   }
 
