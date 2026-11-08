@@ -358,7 +358,7 @@ function describeFailure(failure: FetchFailure): string {
 
 const dayFormat = new Intl.DateTimeFormat(undefined, { timeZone: zone, month: 'short', day: 'numeric' });
 
-/** `Oct 23, 3:00 PM`: the time half as the header clock shows it. */
+/** `Oct 23, 3:00 PM`: the time as formatTime writes it. */
 function formatInstant(epochMs: number): string {
   const instant = new Date(epochMs);
   return `${dayFormat.format(instant)}, ${formatTime(instant, zone)}`;

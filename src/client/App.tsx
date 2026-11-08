@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react';
-import { formatClock } from '../core/clock.js';
+import { Circle, House, Settings } from 'lucide-react';
+import type { ComponentType, ReactNode } from 'react';
 import { clientFeatureList } from '../features/registry.client.js';
 import type { ClientFeature, FeatureTile } from '../features/types.js';
 import { AdminPage } from './admin/AdminPage.js';
@@ -8,7 +8,6 @@ import { useLiveUpdates } from './liveUpdates.js';
 import { useTheme } from './theme.js';
 import { followLink, useRoute } from './router.js';
 import type { Route } from './router.js';
-import { useNow } from './useNow.js';
 import { configuredZone } from './zone.js';
 
 const zone = configuredZone();
@@ -29,40 +28,12 @@ export function App() {
   return (
     <AdminSessionProvider>
       <div className="shell">
-        <Header onAdmin={route.kind === 'admin'} />
         <main className="shell-main">
           <View route={route} />
         </main>
         <BottomNav path={path} />
       </div>
     </AdminSessionProvider>
-  );
-}
-
-function Header({ onAdmin }: { onAdmin: boolean }) {
-  const now = useNow();
-  const { time, date } = formatClock(now, zone);
-  const { pinStatus } = useAdminSession();
-  // First run: the button says what the page will ask for.
-  const needsPin = pinStatus.kind === 'ready' && !pinStatus.pinSet;
-
-  return (
-    <header className="shell-header">
-      <p className="clock">
-        <time className="clock-part" dateTime={now.toISOString()}>
-          {time}
-        </time>
-        <span className="clock-part">{date}</span>
-      </p>
-      <a
-        className="admin-button"
-        href="/admin"
-        onClick={followLink}
-        aria-current={onAdmin ? 'page' : undefined}
-      >
-        {needsPin ? 'Set a PIN' : 'Admin'}
-      </a>
-    </header>
   );
 }
 
@@ -129,32 +100,44 @@ function EmptyState({ title, children }: { title: string; children: ReactNode })
   );
 }
 
+interface NavItem {
+  href: string;
+  label: string;
+  icon: ComponentType<{ className?: string; 'aria-hidden'?: boolean }>;
+}
+
+/**
+ * The bottom row: Home, each feature's page, then Admin. There is no header
+ * clock; the kitchen has its own. Admin sits last, where a child is least
+ * likely to tap it by accident, and says "Set a PIN" until one is set.
+ */
 function BottomNav({ path }: { path: string }) {
-  const items = [
-    { href: '/', label: 'Home', icon: '⌂' },
+  const { pinStatus } = useAdminSession();
+  const needsPin = pinStatus.kind === 'ready' && !pinStatus.pinSet;
+  const items: NavItem[] = [
+    { href: '/', label: 'Home', icon: House },
     ...clientFeatureList.map((feature) => ({
       href: `/${feature.id}`,
       label: feature.name,
-      icon: feature.page?.icon ?? '•',
+      icon: feature.page?.icon ?? Circle,
     })),
+    { href: '/admin', label: needsPin ? 'Set a PIN' : 'Admin', icon: Settings },
   ];
   const current = (href: string) =>
     href === '/' ? path === '/' : path === href || path.startsWith(`${href}/`);
 
   return (
     <nav className="bottom-nav" aria-label="Main">
-      {items.map((item) => (
+      {items.map(({ href, label, icon: Icon }) => (
         <a
-          key={item.href}
+          key={href}
           className="nav-item"
-          href={item.href}
+          href={href}
           onClick={followLink}
-          aria-current={current(item.href) ? 'page' : undefined}
+          aria-current={current(href) ? 'page' : undefined}
         >
-          <span className="nav-icon" aria-hidden="true">
-            {item.icon}
-          </span>
-          {item.label}
+          <Icon className="nav-icon" aria-hidden />
+          {label}
         </a>
       ))}
     </nav>

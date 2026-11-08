@@ -1,3 +1,4 @@
+import { CalendarDays } from 'lucide-react';
 import type { ClientFeature } from '../types.js';
 import { CalendarAdmin } from './admin/CalendarAdmin.client.js';
 import { MonthPage } from './page/MonthPage.client.js';
@@ -7,6 +8,6 @@ export const calendarClient = {
   id: 'calendar',
   name: 'Calendar',
   tiles: [{ component: DayAtAGlance, size: 'sm' }],
-  page: { component: MonthPage, icon: '📅' },
+  page: { component: MonthPage, icon: CalendarDays },
   admin: { component: CalendarAdmin },
 } satisfies ClientFeature;

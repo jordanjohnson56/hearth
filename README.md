@@ -102,7 +102,7 @@ under `DATA_DIR`.
 
 ### Unlock admin
 
-1. Tap **Admin** in the header.
+1. Tap **Admin** at the right end of the bottom bar.
 2. On first use there is no PIN and no default PIN exists. The page says
    **Set a PIN**: choose four digits and enter them twice. Hearth saves the
    PIN and unlocks.

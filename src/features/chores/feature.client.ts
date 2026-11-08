@@ -1,3 +1,4 @@
+import { BrushCleaning } from 'lucide-react';
 import type { ClientFeature } from '../types.js';
 import { ChoresAdmin } from './admin/ChoresAdmin.client.js';
 import { ChoresPage } from './page/ChoresPage.client.js';
@@ -12,6 +13,6 @@ export const choresClient = {
     { component: ChoresToday, size: 'wide' },
     { component: Leaderboard, size: 'sm' },
   ],
-  page: { component: ChoresPage, icon: '🧹' },
+  page: { component: ChoresPage, icon: BrushCleaning },
   admin: { component: ChoresAdmin },
 } satisfies ClientFeature;

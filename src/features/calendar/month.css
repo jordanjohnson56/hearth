@@ -44,15 +44,13 @@
   white-space: pre;
 }
 
-/* The month in marker, as on the board (Permanent Marker, Apache-2.0,
-   bundled by MonthPage); the year stays small beside it in the app font. */
+/* The month written large, as on the board; the year stays small beside it. */
 .month-title-name {
   color: var(--color-accent);
-  font-family: 'Permanent Marker', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   font-size: clamp(1.75rem, 1.2rem + 2vw, 3rem);
-  font-weight: 400;
+  font-weight: 700;
+  letter-spacing: -0.01em;
   line-height: 1.1;
-  margin-right: 0.15em;
 }
 
 .month-title-rest {
@@ -222,14 +220,17 @@
   color: var(--color-on-accent);
 }
 
+/* A title that does not fit wraps once, then ends in an ellipsis. */
 .month-entry {
-  display: block;
+  display: -webkit-box;
   overflow: hidden;
   font-size: var(--month-text-size);
   font-weight: 600;
   line-height: 1.35;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
 }
 
 .month-entry-time {

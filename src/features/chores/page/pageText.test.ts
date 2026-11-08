@@ -37,7 +37,7 @@ describe('nextDueText', () => {
 describe('completedText', () => {
   const zone = 'America/Chicago';
 
-  it('gives today\'s completion its time as the header clock writes it', () => {
+  it('gives today\'s completion its time as formatTime writes it', () => {
     // 12:05 CDT.
     expect(plain(completedText(new Date('2026-10-23T17:05:00Z').getTime(), TODAY, zone, 'en-US'))).toBe(
       'Today, 12:05 PM',

@@ -20,9 +20,6 @@ import {
 import type { GridCell, WeekSpan, YearMonth } from '../monthGrid.js';
 import { withSources } from '../wireEvents.js';
 import type { SourcedEvent } from '../wireEvents.js';
-// The month name is written in marker, as on the whiteboard; latin only,
-// bundled so the wall display needs no font host.
-import '@fontsource/permanent-marker/latin-400.css';
 import '../month.css';
 
 const zone = configuredZone();

@@ -12,7 +12,7 @@ import '../dayAtAGlance.css';
 
 const zone = configuredZone();
 
-/** Like the header clock, so "3:00 PM" reads the same in the tile and above it. */
+/** formatTime, so "3:00 PM" reads the same in the tile and on the month page. */
 function timeOf(instant: Date): string {
   return formatTime(instant, zone);
 }

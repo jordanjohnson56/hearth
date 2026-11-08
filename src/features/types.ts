@@ -5,7 +5,7 @@
 import type { Database } from 'better-sqlite3';
 import type { RequestHandler, Router } from 'express';
 import type { Logger } from 'pino';
-import type { FC } from 'react';
+import type { ComponentType, FC } from 'react';
 import type { Broadcaster } from '../server/broadcaster.js';
 import type { Config } from '../server/config.js';
 
@@ -86,7 +86,8 @@ export interface ClientFeature {
   name: string;
   /** The feature's Home tiles, in order. Wide tiles lead the grid, then the rest in nav order. */
   tiles?: readonly FeatureTile[];
-  page?: { component: FC; icon: string };
+  /** `icon` is drawn in the bottom nav at the nav's text color (a Lucide icon). */
+  page?: { component: FC; icon: ComponentType<{ className?: string; 'aria-hidden'?: boolean }> };
   /**
    * The feature's admin panel, rendered by the core /admin route below the
    * core panel once unlocked. It calls bearer routes through the admin
