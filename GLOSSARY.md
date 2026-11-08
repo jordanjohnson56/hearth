@@ -170,7 +170,8 @@ extra, one-off.
 
 **Overdue**: a waiting chore whose earliest unsatisfied due date is before
 today. It is one item however many due dates it has missed; its lateness
-is the days since that earliest date. _Avoid_: late, missed (as a count).
+is the days since that earliest date, shown as "N days late" (`daysLate` in
+code). _Avoid_: late (as the state's name), missed (as a count).
 
 **Due today**: a waiting chore whose earliest unsatisfied due date is today.
 

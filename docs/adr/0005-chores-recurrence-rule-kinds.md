@@ -1,6 +1,6 @@
 # 5. Chores recurrence is Hearth's own set of rule kinds, not RRULE
 
-- Status: Proposed (needs human approval on the M2 spec PR)
+- Status: Accepted (approved by Jordan on PR #35, 2026-10-24)
 - Date: 2026-10-23
 - Ticket: M2 spec (grilling session of 2026-10-23)
 

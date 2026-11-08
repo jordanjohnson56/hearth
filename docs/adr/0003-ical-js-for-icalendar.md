@@ -1,6 +1,6 @@
 # 3. Use ical.js for iCalendar parsing and recurrence expansion
 
-- Status: Proposed (needs human approval on PR #24)
+- Status: Accepted (approved by Jordan on PR #24, 2026-10-23)
 - Date: 2026-10-23
 - Ticket: #17 (M1.3), expansion in #18 (M1.4)
 
