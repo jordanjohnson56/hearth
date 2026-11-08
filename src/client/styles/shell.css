@@ -1,5 +1,5 @@
 /*
- * The app shell: header, scrolling main region, bottom nav, the Home tile
+ * The app shell: scrolling main region, bottom nav, the Home tile
  * grid, and the rules every view shares (.button, .visually-hidden). Layout
  * rules from DESIGN section 8: no device sizes anywhere, no fixed widths or
  * heights on containers, 100dvh for the full-height shell, rem/clamp() for
@@ -13,9 +13,6 @@
   --space-2: 1rem;
   --space-3: clamp(1rem, 0.6rem + 1.2vw, 1.5rem);
   --radius: 0.875rem;
-
-  /* Time and date are shown at the same size. */
-  --clock-size: clamp(1.25rem, 0.9rem + 1.6vw, 2.25rem);
 
   /* Tile grid: a column is at least --tile-min wide; see the @container rule. */
   --tile-min: 18rem;
@@ -49,44 +46,13 @@ body {
 
 .shell {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: minmax(0, 1fr) auto;
   height: 100dvh;
-}
-
-/* Header */
-
-.shell-header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-1) var(--space-2);
-  padding: calc(var(--space-1) + var(--inset-top)) calc(var(--space-3) + var(--inset-right))
-    var(--space-1) calc(var(--space-3) + var(--inset-left));
-  background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
-}
-
-.clock {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0 0.75em;
-  margin: 0;
-  min-width: 0;
-  font-size: var(--clock-size);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-.clock-part {
-  white-space: nowrap;
 }
 
 /* Buttons: one base for every tappable control, links styled as buttons included. */
 
 .button,
-.admin-button,
 .link-button {
   display: inline-flex;
   align-items: center;
@@ -104,7 +70,6 @@ body {
   cursor: pointer;
 }
 
-.admin-button,
 .link-button {
   color: var(--color-text-muted);
 }
@@ -151,7 +116,8 @@ body {
 .shell-main {
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: var(--space-3) calc(var(--space-3) + var(--inset-right)) var(--space-3)
+  /* No header above it, so the main region takes the top safe-area inset. */
+  padding: calc(var(--space-3) + var(--inset-top)) calc(var(--space-3) + var(--inset-right)) var(--space-3)
     calc(var(--space-3) + var(--inset-left));
   container: main / inline-size;
 }
@@ -255,8 +221,9 @@ body {
 }
 
 .nav-icon {
-  font-size: 1.375em;
-  line-height: 1;
+  width: 1.5em;
+  height: 1.5em;
+  flex: none;
 }
 
 .nav-item[aria-current='page'] {

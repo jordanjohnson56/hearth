@@ -1,6 +1,6 @@
 // Dates and times as the Chores page writes them. Polyfill-free: local
 // dates are `YYYY-MM-DD` text worked with the core's local-date text
-// helpers, and a time is the header clock's format (formatTime).
+// helpers, and a time is formatTime's format.
 import { formatTime } from '../../../core/clock.js';
 import { addDays, atUtcMidnight, localDateOf, partsOf } from '../../../core/localDateText.js';
 
@@ -29,7 +29,7 @@ export function nextDueText(nextDue: string, today: string, locale?: string): st
 /**
  * When a completion of this week happened, in `zone`: "Today, 7:42 AM",
  * "Yesterday, 6:30 PM", else the weekday ("Monday, 8:00 AM"). The time is
- * written as the header clock writes it.
+ * written as formatTime writes it.
  */
 export function completedText(completedAt: number, today: string, zone: string, locale?: string): string {
   const instant = new Date(completedAt);

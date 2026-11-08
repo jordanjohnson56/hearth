@@ -53,7 +53,7 @@ After M2. The privacy rails first, then the application.
 | `src/features/` | `types.ts` (the feature contract, type-only), the server and client registries, `sharedFeatureData.ts` (one request shared by every reader of a feature's data, as the chores board's tiles and page are), `calendar/` and `chores/`. |
 | `src/features/calendar/` | The M1 feature: `SecretUrl`, the bounded fetcher, the ical.js provider with recurrence expansion (`provider.ts`, the only ical.js importer), source and event repositories, the service with its change digest, `feature.server.ts` (migration `calendar#1`, `/api/calendar`, the 10-minute poll job), the admin panel, the Day at a glance tile and the month page. |
 | `src/features/chores/` | The M2 feature: the rule kinds and due-date expansion (`rule.ts`, `dueDates.ts`, ADR 0005), the pool (`pool.ts`: waiting, overdue, due today) and the weekly standings (`standings.ts`), the chore and the insert-only completion repositories, the board and corrections services, `feature.server.ts` (migration `chores#1`, `/api/chores`, the demo chores in `seed.ts`), the Chores today and Leaderboard tiles, the Chores page, the shared claim flow (person picker, undo toast) and the admin panel (definitions, the 14-day completion list with Void and Reassign). |
-| `src/client/` | The React shell: header clock, bottom nav, tile grid with ghost slots (wide tiles lead), the router, live updates over SSE with a 5-minute backstop, `useFeatureData`, the theme hook, `PersonAvatar` (the colored initial) and the stylesheet tokens under `styles/`. |
+| `src/client/` | The React shell: bottom nav (Lucide icons, Admin last), tile grid with ghost slots (wide tiles lead), the router, live updates over SSE with a 5-minute backstop, `useFeatureData`, the theme hook, `PersonAvatar` (the colored initial) and the stylesheet tokens under `styles/`. |
 | `src/client/admin/` | The `/admin` route: "Set a PIN", the PIN pad, the unlocked core panel (people with the palette picker, change PIN, theme times, lock now) and each feature's admin panel below it (M1, people M2). |
 | `test/` | Cross-cutting tests (DST and zone injection, the client-bundle guard against the polyfill, the ical.js import boundary, palette contrast) and helpers (including `featureHarness`, an app with the PIN set and unlocked and an injected clock); `test/fixtures/ical/` holds the fictional iCalendar fixtures as `.txt` (section 14). |
 | `docs/adr/` | ADRs: 0001 Temporal polyfill, 0002 epoch-millisecond instants in SQLite, 0003 ical.js, 0004 epoch milliseconds on the wire, 0005 chores rule kinds. |
@@ -287,14 +287,14 @@ Conventions:
 
 ## 7. Frontend structure and navigation
 
-- **Bottom nav:** Home, Calendar, Chores.
-- **Header:** time and date at equal size, plus an admin (PIN) button.
+- **Bottom nav:** Home, Calendar, Chores, then Admin.
+- **No header.** The kitchen already has a clock, so the app shows no time or date; the admin (PIN) entry is the last item of the bottom nav. Nav icons are Lucide (`lucide-react`), not emoji. This supersedes the mockup's header.
 - **Home tile grid** (landing view):
   - **Chores today** (wide): the unclaimed pool, overdue first, then highest points. It is capped, with a `+N more` link to the Chores page. A completed chore drops off.
   - **Leaderboard:** relative standings for the current Monday–Sunday week.
   - **Day at a glance:** all of today, including what has already happened. It scrolls.
   - **Ghost slots** for future features (dashed placeholders).
-- **Calendar page:** full month grid, color-coded per source.
+- **Calendar page:** full month grid, color-coded per source, drawn like a kitchen whiteboard: a ruled board with a boxed date in each square's corner, each event written as plain text in its source's person color (no chips), and a multi-day event as one title with a line across its days.
 - **Chores page:** Waiting (the full pool), Anytime, Upcoming (each with its next due date) and Recent (this week's completions). Because chores are an unassigned shared pool, there are no per-person attributions or rotations, and the mockup's per-person tabs and Tomorrow column are dropped; this supersedes the mockup.
 
 ---
