@@ -19,7 +19,11 @@ secret-address iCal URLs that the server polls.
 > [Chores](#chores)). Seasons, bonuses and avatars arrive in M3. See
 > [docs/DESIGN.md](docs/DESIGN.md) for the plan.
 
-![Hearth home screen, M2 (screenshot placeholder; the real screenshot arrives in M3)](docs/screenshot-placeholder.svg)
+![Hearth's Home view on an iPad in landscape: the Chores today, Today and Leaderboard tiles, with the bottom nav](docs/screenshots/home.png)
+
+![The Calendar view: a month drawn like a kitchen whiteboard, each event written in its person's color and multi-day events as lines across their days](docs/screenshots/calendar.png)
+
+Screenshots show the seeded fictional family and a made-up calendar.
 
 ## Quick start (Docker)
 
