@@ -125,6 +125,21 @@ describe('weekLayout', () => {
     expect(day?.more).toBe(2);
   });
 
+  it('gives up a line per reserved line, down to none', () => {
+    const five = [1, 2, 3, 4, 5].map((id) => allDay('2026-08-04', '2026-08-05', { id }));
+    const oneHoliday = week(weekLayout(cells, five, CHICAGO, new Map([['2026-08-04', 1]])), '2026-08-02');
+    expect(ids(oneHoliday.days.get('2026-08-04')?.shown)).toEqual([1, 2]);
+    expect(oneHoliday.days.get('2026-08-04')?.more).toBe(3);
+    // Other days keep all three lines.
+    expect(oneHoliday.days.get('2026-08-05')?.shown).toEqual([]);
+
+    // Two multi-day lanes leave one line; a holiday takes it.
+    const spans = [allDay('2026-08-03', '2026-08-07', { id: 10 }), allDay('2026-08-03', '2026-08-07', { id: 11 })];
+    const crowded = week(weekLayout(cells, [...spans, ...five], CHICAGO, new Map([['2026-08-04', 1]])), '2026-08-02');
+    expect(crowded.days.get('2026-08-04')?.shown).toEqual([]);
+    expect(crowded.days.get('2026-08-04')?.more).toBe(5);
+  });
+
   it('draws a multi-day event once across its days, out of the squares', () => {
     const layout = weekLayout(cells, [allDay('2026-08-04', '2026-08-07', { id: 1 })], CHICAGO);
     const w = week(layout, '2026-08-02');

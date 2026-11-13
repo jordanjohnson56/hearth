@@ -294,7 +294,7 @@ Conventions:
   - **Leaderboard:** relative standings for the current Monday–Sunday week.
   - **Day at a glance:** all of today, including what has already happened. It scrolls.
   - **Ghost slots** for future features (dashed placeholders).
-- **Calendar page:** full month grid, color-coded per source, drawn like a kitchen whiteboard: a ruled board with a boxed date in each square's corner, each event written as plain text in its source's person color (no chips), and a multi-day event as one title with a line across its days.
+- **Calendar page:** full month grid, color-coded per source, drawn like a kitchen whiteboard: a ruled board with a boxed date in each square's corner, each event written as plain text in its source's person color (no chips), and a multi-day event as one title with a line across its days. US holidays (the eleven federal holidays with their weekend-observed days, plus common observances such as Mother's Day and Halloween) are computed on the device from their rules (`src/features/calendar/holidays.ts`, no feed) and written first in a square, in italic board ink rather than a person color; the day panel and the Day at a glance tile list them too.
 - **Chores page:** Waiting (the full pool), Anytime, Upcoming (each with its next due date) and Recent (this week's completions). Because chores are an unassigned shared pool, there are no per-person attributions or rotations, and the mockup's per-person tabs and Tomorrow column are dropped; this supersedes the mockup.
 
 ---

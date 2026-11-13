@@ -113,12 +113,14 @@ export interface WeekLayout<E> {
  * given the first free row;
  * past WEEK_SPAN_CAP rows it is counted in each of its days' "+N" instead.
  * Each day square shows its single-day events (in eventsByDate's order) in
- * the lines its week's spans leave, at least one.
+ * the lines its week's spans leave, at least one, less any lines `reserved`
+ * holds for that date (a holiday's name).
  */
 export function weekLayout<E extends CalendarEventWire>(
   cells: readonly GridCell[],
   events: readonly E[],
   zone: string,
+  reserved: ReadonlyMap<string, number> = new Map(),
 ): WeekLayout<E>[] {
   const byDate = eventsByDate(events, zone);
   const multiDay = events
@@ -160,7 +162,7 @@ export function weekLayout<E extends CalendarEventWire>(
     const days = new Map<string, { shown: E[]; more: number }>();
     for (const cell of week) {
       const singles = (byDate.get(cell.date) ?? []).filter((event) => !spanning.has(event));
-      const shown = singles.slice(0, cap);
+      const shown = singles.slice(0, Math.max(0, cap - (reserved.get(cell.date) ?? 0)));
       days.set(cell.date, { shown, more: singles.length - shown.length + (hidden.get(cell.date) ?? 0) });
     }
     weeks.push({ cells: week, spans, lanes, days });

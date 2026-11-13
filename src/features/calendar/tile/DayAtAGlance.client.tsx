@@ -7,6 +7,8 @@ import { formatTime } from '../../../core/clock.js';
 import { addDays, localDateOf } from '../../../core/localDateText.js';
 import { fetchEvents } from '../api.client.js';
 import { stalenessLine, todaysEvents } from '../dayAtAGlance.js';
+import { holidayLabel, holidaysBetween } from '../holidays.js';
+import type { Holiday } from '../holidays.js';
 import type { GlanceEvent, GlanceTiming } from '../dayAtAGlance.js';
 import '../dayAtAGlance.css';
 
@@ -21,7 +23,8 @@ function timeOf(instant: Date): string {
  * The Home tile: all of today in the configured zone, all-day events first,
  * then timed by start, what is over dimmed, scrolling inside the tile.
  * Tomorrow is fetched too, so an event that crosses midnight is already in
- * hand when the day turns; todaysEvents decides what shows.
+ * hand when the day turns; todaysEvents decides what shows. Today's US
+ * holidays head the list.
  */
 export function DayAtAGlance() {
   const now = useNow();
@@ -56,17 +59,22 @@ export function DayAtAGlance() {
           </a>
         </div>
       ) : (
-        <EventList events={todaysEvents(data, now, zone)} />
+        <EventList holidays={holidaysBetween(today, today)} events={todaysEvents(data, now, zone)} />
       )}
       {stale !== undefined && <p className="glance-stale">{stale}</p>}
     </section>
   );
 }
 
-function EventList({ events }: { events: GlanceEvent[] }) {
-  if (events.length === 0) return <p className="glance-note">Nothing on the calendar today.</p>;
+function EventList({ holidays, events }: { holidays: Holiday[]; events: GlanceEvent[] }) {
+  if (events.length === 0 && holidays.length === 0) return <p className="glance-note">Nothing on the calendar today.</p>;
   return (
     <ul className="glance-list">
+      {holidays.map((holiday) => (
+        <li key={holidayLabel(holiday)} className="glance-event glance-holiday" data-kind={holiday.kind}>
+          <span className="glance-event-title">{holidayLabel(holiday)}</span>
+        </li>
+      ))}
       {events.map((event) => (
         <li
           key={event.id}
