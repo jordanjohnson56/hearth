@@ -6,6 +6,8 @@ import { configuredZone } from '../../../client/zone.js';
 import { formatTime } from '../../../core/clock.js';
 import { addDays, localDateOf } from '../../../core/localDateText.js';
 import { fetchEvents } from '../api.client.js';
+import { holidayLabel, holidaysByDate } from '../holidays.js';
+import type { Holiday } from '../holidays.js';
 import {
   addMonths,
   eventsByDate,
@@ -99,7 +101,9 @@ function shortTimeOf(epochMs: number): string {
  * (weekLayout): each event written in its person's color, a multi-day
  * event as one line across its days, and a panel that lists a tapped day
  * in full. One request covers the visible
- * cells, dimmed days of the adjacent months included.
+ * cells, dimmed days of the adjacent months included. US holidays are
+ * computed on the device (holidays.ts), so they show even on a month the
+ * server has no events for.
  */
 export function MonthPage() {
   const { path } = useRoute();
@@ -127,7 +131,9 @@ export function MonthPage() {
 
   const events = loaded && data ? withSources(data) : [];
   const byDate = eventsByDate(events, zone);
-  const weeks = weekLayout(cells, events, zone);
+  const holidays = holidaysByDate(from, to);
+  const reserved = new Map([...holidays].map(([date, list]) => [date, list.length]));
+  const weeks = weekLayout(cells, events, zone, reserved);
 
   const goTo = (target: YearMonth) => {
     navigate(monthPath(target));
@@ -203,6 +209,7 @@ export function MonthPage() {
                     key={cell.date}
                     cell={cell}
                     column={column}
+                    holidays={holidays.get(cell.date) ?? []}
                     shown={week.days.get(cell.date)?.shown ?? []}
                     more={week.days.get(cell.date)?.more ?? 0}
                     total={byDate.get(cell.date)?.length ?? 0}
@@ -221,6 +228,7 @@ export function MonthPage() {
         {open !== null && (
           <DayPanel
             date={open}
+            holidays={holidays.get(open) ?? []}
             events={byDate.get(open) ?? []}
             onClose={() => { setSelected(null); }}
           />
@@ -237,6 +245,7 @@ function colorOf(event: SourcedEvent): string {
 function DayCell({
   cell,
   column,
+  holidays,
   shown,
   more,
   total,
@@ -246,6 +255,7 @@ function DayCell({
 }: {
   cell: GridCell;
   column: number;
+  holidays: readonly Holiday[];
   shown: readonly SourcedEvent[];
   more: number;
   total: number;
@@ -254,6 +264,7 @@ function DayCell({
   onOpen: () => void;
 }) {
   const count = total === 1 ? '1 event' : `${String(total)} events`;
+  const label = [longDateFormat.format(atUtcMidnight(cell.date)), ...holidays.map(holidayLabel), count].join(', ');
   return (
     <button
       type="button"
@@ -262,11 +273,16 @@ function DayCell({
       data-in-month={cell.inMonth ? 'true' : 'false'}
       aria-current={isToday ? 'date' : undefined}
       aria-pressed={isOpen}
-      aria-label={`${longDateFormat.format(atUtcMidnight(cell.date))}, ${count}`}
+      aria-label={label}
       onClick={onOpen}
     >
       <span className="month-cell-board">
         <span className="month-cell-day">{Number(cell.date.slice(8))}</span>
+        {holidays.map((holiday) => (
+          <span key={holidayLabel(holiday)} className="month-holiday" data-kind={holiday.kind}>
+            {holidayLabel(holiday)}
+          </span>
+        ))}
         {shown.map((event) => (
           <span key={event.id} className="month-entry" style={{ color: colorOf(event) }}>
             {event.kind === 'timed' && <span className="month-entry-time">{shortTimeOf(event.startAt)}</span>}
@@ -325,12 +341,23 @@ function whenOf(event: SourcedEvent, date: string): string {
   return `${startText} to ${endText}`;
 }
 
+const HOLIDAY_KIND_TEXT: Record<Holiday['kind'], string> = {
+  federal: 'Federal holiday',
+  observance: 'Holiday',
+};
+
+function holidayKindText(holiday: Holiday): string {
+  return holiday.observed ? `${HOLIDAY_KIND_TEXT[holiday.kind]}, observed` : HOLIDAY_KIND_TEXT[holiday.kind];
+}
+
 function DayPanel({
   date,
+  holidays,
   events,
   onClose,
 }: {
   date: string;
+  holidays: readonly Holiday[];
   events: readonly SourcedEvent[];
   onClose: () => void;
 }) {
@@ -349,10 +376,16 @@ function DayPanel({
           <span aria-hidden="true">×</span>
         </button>
       </header>
-      {events.length === 0 ? (
+      {events.length === 0 && holidays.length === 0 ? (
         <p className="month-day-empty">Nothing on this day.</p>
       ) : (
         <ul className="month-day-list">
+          {holidays.map((holiday) => (
+            <li key={holidayLabel(holiday)} className="month-day-event month-day-holiday">
+              <span className="month-day-when">{holidayKindText(holiday)}</span>
+              <span className="month-day-name">{holidayLabel(holiday)}</span>
+            </li>
+          ))}
           {events.map((event) => (
             <li key={event.id} className="month-day-event" style={{ borderColor: colorOf(event) }}>
               <span className="month-day-when">{whenOf(event, date)}</span>

@@ -81,6 +81,22 @@
   color: var(--color-text);
 }
 
+/* A holiday: italic, bordered in the board's ink rather than a person's
+   color; an observance muted. */
+.glance-holiday {
+  border-left-color: var(--color-text-muted);
+}
+
+.glance-holiday .glance-event-title {
+  font-style: italic;
+  font-weight: 600;
+}
+
+.glance-holiday[data-kind='observance'] .glance-event-title {
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
+
 .glance-stale {
   margin: auto 0 0;
   color: var(--color-text-muted);

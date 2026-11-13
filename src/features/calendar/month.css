@@ -191,6 +191,7 @@
 
 .month-cell[data-in-month='false'] .month-cell-day,
 .month-cell[data-in-month='false'] .month-entry,
+.month-cell[data-in-month='false'] .month-holiday,
 .month-cell[data-in-month='false'] .month-more {
   opacity: 0.45;
 }
@@ -218,6 +219,25 @@
   border-color: var(--color-accent);
   background: var(--color-accent);
   color: var(--color-on-accent);
+}
+
+/* A holiday: written first, in italics and the board's own ink rather than
+   a person's color, so it never reads as someone's event. A day off
+   (federal) in full-strength text, an observance muted. Plain inline flow
+   (no clamp, no overflow box), so a word too long to sit beside the date
+   box drops below it instead of breaking mid-word. */
+.month-holiday {
+  display: block;
+  color: var(--color-text);
+  font-size: var(--month-text-size);
+  font-style: italic;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.month-holiday[data-kind='observance'] {
+  color: var(--color-text-muted);
+  font-weight: 500;
 }
 
 /* A title that does not fit wraps once, then ends in an ellipsis. */
@@ -346,6 +366,17 @@
     font-size: 0;
   }
 
+  /* A holiday is a ring where an event is a dot. */
+  .month-holiday {
+    display: inline-block;
+    width: 0.625rem;
+    height: 0.625rem;
+    margin: 0 0.1875rem 0.1875rem 0;
+    border: 2px solid currentColor;
+    border-radius: 50%;
+    font-size: 0;
+  }
+
   .month-span {
     padding: 0 0.125rem;
   }
@@ -408,6 +439,14 @@
   border-radius: calc(var(--radius) / 2);
   background: var(--color-surface-raised);
   overflow-wrap: anywhere;
+}
+
+.month-day-holiday {
+  border-color: var(--color-text-muted);
+}
+
+.month-day-holiday .month-day-name {
+  font-style: italic;
 }
 
 .month-day-when {

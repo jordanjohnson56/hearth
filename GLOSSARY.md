@@ -100,6 +100,12 @@ everywhere else as a `SecretUrl` whose string form is the fingerprint (host
 plus a short hash). It lives only in the database, in its own table that
 the source row mapper never selects. _Avoid_: feed URL, link.
 
+**Holiday**: a US holiday Hearth computes from its rule, not from a calendar
+source. *Federal*: one of the eleven legal public holidays (5 U.S.C. 6103).
+*Observed day*: the Friday before a federal holiday on a Saturday, or the
+Monday after one on a Sunday; both days are shown. *Observance*: a widely
+marked day that is not a day off (Mother's Day, Halloween, ...).
+
 **Stale**: the newest successful fetch across every source is older than 60
 minutes. A source that has never succeeded is "not yet fetched", not stale.
 _Avoid_: outdated, expired.
